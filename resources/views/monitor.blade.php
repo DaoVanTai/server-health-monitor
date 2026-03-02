@@ -88,7 +88,7 @@
         
         <p class="text-center mt-5 text-muted small">
             Dữ liệu được cập nhật tự động mỗi 5 giây.<br>
-            Server IP: {{ $_SERVER['SERVER_ADDR'] ?? 'Unknown' }}
+            Server IP: {{ $server_ip }}
         </p>
     </div>
 </body>
