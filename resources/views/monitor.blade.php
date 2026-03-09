@@ -150,7 +150,7 @@
         <header class="header">
             <div class="title-area">
                 <h1>SERVER HEALTH MONITOR</h1>
-                <p>Hệ thống giám sát và phát hiện sự cố theo thời gian thực</p>
+                <p>Real-time Server Monitoring and Detection System</p>
             </div>
             <div class="top-right-stats">
                 <div><div>CORES</div><strong style="color: white;">LIVE</strong></div>
@@ -158,7 +158,7 @@
             </div>
         </header>
 
-        <div class="info-row">V1.0.9 // SYS.CORE // Node IP: 192.168.153.128 // Ubuntu Linux</div>
+        <div class="info-row">V1.0.9 // SYS.CORE // Project: Server Health Monitor // Ubuntu Linux</div>
 
         <div id="attack-warning-banner">[!] CẢNH BÁO MỨC ĐỘ CRITICAL: HỆ THỐNG QUÁ TẢI HOẶC PHÁT HIỆN TẤN CÔNG [!]</div>
 
