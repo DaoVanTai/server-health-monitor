@@ -1,53 +1,63 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-// Nạp cái Controller giám sát mà chúng ta vừa tạo ở Phần 1 vào đây
-use App\Http\Controllers\ServerMonitorController;
 
-// Đặt quy tắc: Khi người dùng vào trang chủ ('/') -> Chạy hàm index của ServerMonitorController để load giao diện
-Route::get('/', [ServerMonitorController::class, 'index']);
+// Giao diện trang chủ
+Route::get('/', function () {
+    return view('welcome');
+});
 
-// ----------------------------------------------------------------------
-// API MỚI: Cung cấp dữ liệu thật của máy ảo Ubuntu cho giao diện (Cập nhật mỗi 5 giây)
-// ----------------------------------------------------------------------
+// API Lấy dữ liệu hệ thống
 Route::get('/api/server-status', function () {
-    // 1. Lấy thông số RAM thật từ lệnh 'free' của Ubuntu
+    // 1. Thông số CPU
+    $cpuLoad = sys_getloadavg();
+    $cpuPercent = min(round($cpuLoad[0] * 20, 2), 100); 
+
+    // 2. Thông số RAM
     $free = shell_exec('free -m');
-    $free_arr = explode("\n", trim($free));
-    $mem = explode(" ", preg_replace('!\s+!', ' ', $free_arr[1]));
-    
-    // Xử lý logic chia dung lượng RAM
-    $memTotal = isset($mem[1]) ? round($mem[1] / 1024, 2) : 0; // GB
-    $memUsed = isset($mem[2]) ? round($mem[2] / 1024, 2) : 0;  // GB
-    $memPercent = $memTotal > 0 ? round(($memUsed / $memTotal) * 100, 2) : 0;
+    preg_match('/Mem:\s+(\d+)\s+(\d+)\s+(\d+)/', $free, $mem);
+    $ramTotal = isset($mem[1]) ? round($mem[1] / 1024, 2) : 2.0;
+    $ramUsed = isset($mem[2]) ? round($mem[2] / 1024, 2) : 1.0;
+    $ramPercent = $ramTotal > 0 ? round(($ramUsed / $ramTotal) * 100, 2) : 0;
 
-    // 2. Lấy % CPU thật đang sử dụng
-    $cpuTop = shell_exec("top -bn1 | grep 'Cpu(s)'");
-    preg_match('/(\d+\.\d+)\s*id/', $cpuTop, $matches);
-    $cpuIdle = isset($matches[1]) ? (float)$matches[1] : 100;
-    $cpuPercent = round(100 - $cpuIdle, 2);
-
-    // 3. Lấy thông số Ổ Cứng (Disk) thật của phân vùng gốc '/'
-    $diskTotal = round(disk_total_space('/') / 1024 / 1024 / 1024, 2); // GB
-    $diskFree = round(disk_free_space('/') / 1024 / 1024 / 1024, 2);   // GB
+    // 3. Thông số Ổ cứng
+    $diskTotal = disk_total_space('/');
+    $diskFree = disk_free_space('/');
     $diskUsed = $diskTotal - $diskFree;
     $diskPercent = $diskTotal > 0 ? round(($diskUsed / $diskTotal) * 100, 2) : 0;
+    $diskFreeGb = round($diskFree / 1073741824, 2);
 
-    // 4. Logic phát hiện Sự cố / Bị Tấn công
-    // Hệ thống sẽ nháy đỏ cảnh báo nếu CPU > 90% hoặc RAM > 95%
-    $isUnderAttack = false;
-    if ($cpuPercent > 90 || $memPercent > 95) {
-        $isUnderAttack = true;
+    $isAttacked = $cpuPercent > 85;
+
+    // 4. TÍNH NĂNG MỚI: Lấy Top 5 tiến trình ngốn RAM nhất
+    $psOutput = shell_exec("ps -eo pid,comm,%mem,%cpu --sort=-%mem | head -n 6");
+    $processes = [];
+    if ($psOutput) {
+        $lines = explode("\n", trim($psOutput));
+        array_shift($lines); // Bỏ qua dòng tiêu đề
+        foreach($lines as $line) {
+            $line = preg_replace('/\s+/', ' ', trim($line));
+            if(empty($line)) continue;
+            $parts = explode(' ', $line);
+            if(count($parts) >= 4) {
+                $processes[] = [
+                    'pid' => $parts[0],
+                    'name' => substr($parts[1], 0, 15), // Cắt ngắn tên cho đẹp
+                    'ram' => $parts[2],
+                    'cpu' => $parts[3]
+                ];
+            }
+        }
     }
 
-    // Trả toàn bộ dữ liệu về dạng JSON
     return response()->json([
         'cpu_percent' => $cpuPercent,
-        'ram_percent' => $memPercent,
-        'ram_total'   => $memTotal,
-        'ram_used'    => $memUsed,
+        'ram_percent' => $ramPercent,
+        'ram_total'   => $ramTotal,
+        'ram_used'    => $ramUsed,
         'disk_percent'=> $diskPercent,
-        'disk_free'   => $diskFree,
-        'is_attacked' => $isUnderAttack
+        'disk_free'   => $diskFreeGb,
+        'is_attacked' => $isAttacked,
+        'processes'   => $processes // Trả thêm mảng tiến trình
     ]);
 });
