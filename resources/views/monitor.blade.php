@@ -91,6 +91,23 @@
             </div>
             
             <div class="top-right-stats">
+
+                <div><div>CORES</div><strong style="color: white;">LIVE</strong></div>
+    <div><div>NETWORK</div><strong style="color: white;">SECURE</strong></div>
+    
+    <div style="display: flex; align-items: center; margin-left: 10px;">
+        <form action="{{ route('logout') }}" method="POST">
+            @csrf
+            <button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 10px;">
+                ĐĂNG XUẤT
+            </button>
+        </form>
+    </div>
+
+    <div style="position: relative; text-align: left;">
+        <button onclick="toggleChat()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; box-shadow: 0 0 15px var(--neon-blue); color: white; font-size: 20px; display: flex; align-items: center; justify-content: center;">💬</button>
+        </div>
+
                 <div><div>CORES</div><strong style="color: white;">LIVE</strong></div>
                 <div><div>NETWORK</div><strong style="color: white;">SECURE</strong></div>
                 

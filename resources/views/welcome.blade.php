@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHIELD-AI SERVER MONITOR</title>
+    <title>SERVER HEALTH MONITOR</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -62,7 +62,7 @@
     <main class="main-content">
         <header class="header">
             <div class="title-area">
-                <h1>🛡️ SHIELD-AI SERVER MONITOR</h1>
+                <h1>SERVER HEALTH MONITOR</h1>
                 <p>Hệ thống giám sát và phát hiện sự cố theo thời gian thực</p>
             </div>
         </header>
