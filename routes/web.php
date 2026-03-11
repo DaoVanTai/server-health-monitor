@@ -1,10 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ServerMonitorController; // Kéo Controller của Bot vào đây
 
 // Giao diện trang chủ
 Route::get('/', function () {
-    return view('welcome');
+    return view('monitor'); // Nếu file giao diện của bạn tên là monitor.blade.php thì đổi 'welcome' thành 'monitor' nhé
 });
 
 // API Lấy dữ liệu hệ thống
@@ -61,3 +62,4 @@ Route::get('/api/server-status', function () {
         'processes'   => $processes // Trả thêm mảng tiến trình
     ]);
 });
+Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
