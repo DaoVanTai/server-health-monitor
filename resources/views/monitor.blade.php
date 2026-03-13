@@ -91,33 +91,26 @@
             </div>
             
             <div class="top-right-stats">
-
-                <div><div>CORES</div><strong style="color: white;">LIVE</strong></div>
-    <div><div>NETWORK</div><strong style="color: white;">SECURE</strong></div>
-    
-    <div style="display: flex; align-items: center; margin-left: 10px;">
-        <form action="{{ route('logout') }}" method="POST">
-            @csrf
-            <button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 10px;">
-                ĐĂNG XUẤT
-            </button>
-        </form>
-    </div>
-
-    <div style="position: relative; text-align: left;">
-        <button onclick="toggleChat()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; box-shadow: 0 0 15px var(--neon-blue); color: white; font-size: 20px; display: flex; align-items: center; justify-content: center;">💬</button>
-        </div>
-
                 <div><div>CORES</div><strong style="color: white;">LIVE</strong></div>
                 <div><div>NETWORK</div><strong style="color: white;">SECURE</strong></div>
                 
-                <div style="position: relative; text-align: left; margin-left: 10px;">
+                <div style="display: flex; align-items: center; margin-left: 10px; margin-right: 10px;">
+                    <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+                        @csrf
+                        <button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.3s ease;">
+                            ĐĂNG XUẤT
+                        </button>
+                    </form>
+                </div>
+
+                <div style="position: relative; text-align: left;">
                     <button onclick="toggleChat()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; box-shadow: 0 0 15px var(--neon-blue); color: white; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">💬</button>
                     
                     <div id="chat-window" style="position: absolute; top: 55px; right: 0; display: none; width: 350px; height: 450px; background: var(--bg-card); border: 1px solid var(--neon-blue); border-radius: 12px; flex-direction: column; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000;">
-                        <div style="background: var(--neon-blue); padding: 10px; font-weight: bold; font-size: 14px; color: white;">SYS ASSISTANT</div>
+                        <div style="background: var(--neon-blue); padding: 10px; font-weight: bold; font-size: 14px; color: white; text-align: center; letter-spacing: 1px;">CHAT BOT</div>
+                        
                         <div id="chat-content" style="flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;">
-                            <div style="background: #1f2937; padding: 10px; border-radius: 8px; align-self: flex-start; max-width: 85%; color: white;">Chào Admin! Giao diện đã hiển thị tiến trình. Hãy yêu cầu tôi 'stop attack', 'history cpu', hoặc 'history ram'.</div>
+                            <div style="background: #1f2937; padding: 10px; border-radius: 8px; align-self: flex-start; max-width: 85%; color: white; border-left: 3px solid var(--neon-blue);">Xin chào, tôi có thể giúp gì cho bạn?</div>
                         </div>
                         <div style="padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 5px; background: #0f172a;">
                             <input id="chat-input" type="text" placeholder="Nhập lệnh phòng thủ/lịch sử..." style="flex: 1; background: #0b1120; border: 1px solid var(--border-color); color: white; padding: 8px; border-radius: 4px; outline: none;" onkeypress="if(event.key === 'Enter') sendMessage()">

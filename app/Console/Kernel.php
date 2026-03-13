@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // THÊM DÒNG NÀY VÀO ĐÂY: Lên lịch tự đo thông số mỗi phút
+        $schedule->command('monitor:log')->everyMinute();
     }
 
     /**
