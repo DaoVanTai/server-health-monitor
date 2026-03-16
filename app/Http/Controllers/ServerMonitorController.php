@@ -36,7 +36,6 @@ class ServerMonitorController extends Controller
 
         // --- LOGIC PHÁT HIỆN SỰ CỐ & GỬI TELEGRAM ---
         $isCritical = ($cpuLoad > 90 || $ramPercent > 90);
-        
         if ($isCritical) {
             $this->sendTelegramAlert($cpuLoad, $ramPercent, $diskPercent);
         }
@@ -56,7 +55,7 @@ class ServerMonitorController extends Controller
         $command = strtolower(trim($rawCommand));
         $reply = "";
 
-        // --- NGÃ RẼ 1: CÁC LỆNH HỆ THỐNG ƯU TIÊN (LẤY TỪ DATABASE) ---
+        // --- DANH SÁCH CÁC LỆNH HỆ THỐNG (OFFLINE) ---
         $systemCommands = ['stop attack', 'clear cache', 'history cpu', 'history ram', 'history disk'];
 
         if (in_array($command, $systemCommands)) {
@@ -75,9 +74,9 @@ class ServerMonitorController extends Controller
                     $type = str_replace('history ', '', $command);
                     $logs = \App\Models\ServerMetric::orderBy('created_at', 'desc')->take(5)->get();
                     if ($logs->isEmpty()) {
-                        $reply = "Kho lưu trữ trống. Đang thu thập dữ liệu (1 phút/lần)...";
+                        $reply = "Kho lưu trữ trống. Đang chờ thu thập dữ liệu từ Crontab...";
                     } else {
-                        $reply = "📈 LỊCH SỬ " . strtoupper($type) . " (5 PHÚT GẦN NHẤT):\n";
+                        $reply = "📈 LỊCH SỬ " . strtoupper($type) . ":\n";
                         foreach($logs as $log) {
                             $val = ($type == 'cpu') ? $log->cpu_percent : (($type == 'ram') ? $log->ram_percent : $log->disk_percent);
                             $reply .= "⏱ " . $log->created_at->format('H:i') . " ➔ {$val}%\n";
@@ -85,38 +84,9 @@ class ServerMonitorController extends Controller
                     }
                     break;
             }
-            return response()->json(['reply' => $reply]);
-        }
-
-        // --- NGÃ RẼ 2: GIAO CHO AI GEMINI (PHẢI KHỚP VỚI BẢN 2.5 FLASH) ---
-        // Tự động gọt bỏ mọi dấu cách hoặc ký tự lạ từ file .env
-        $apiKey = trim(env('GEMINI_API_KEY'));
-        
-        if (!$apiKey) {
-            return response()->json(['reply' => '⚠️ Hệ thống chưa nhận được API Key. Hãy chạy lệnh php artisan config:clear']);
-        }
-
-        try {
-            // CẬP NHẬT: Sử dụng model gemini-2.5-flash theo đúng Rate Limit của bạn
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $apiKey;
-
-            $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                ->post($url, [
-                    'contents' => [
-                        ['parts' => [['text' => "Bạn là trợ lý AI giám sát dự án Server Health Monitoring & Detection System. Hãy trả lời ngắn gọn: " . $rawCommand]]]
-                    ]
-                ]);
-
-            if ($response->successful()) {
-                $reply = $response->json('candidates.0.content.parts.0.text');
-            } else {
-                // Phân tích lỗi cụ thể để bạn dễ sửa
-                $status = $response->status();
-                $errorMsg = $response->json('error.message') ?? 'Lỗi không xác định';
-                $reply = "⚠️ AI báo lỗi ($status): $errorMsg";
-            }
-        } catch (\Exception $e) {
-            $reply = "⚠️ Lỗi kết nối: " . $e->getMessage();
+        } else {
+            // PHẢN HỒI MẶC ĐỊNH KHI KHÔNG CÓ AI
+            $reply = "🤖 Chào Admin! Hiện tại tính năng AI đang tạm đóng để bảo trì. Bạn có thể sử dụng các lệnh hệ thống như: 'history cpu', 'clear cache', hoặc 'stop attack' để quản lý máy chủ.";
         }
 
         return response()->json(['reply' => $reply]);
@@ -127,10 +97,7 @@ class ServerMonitorController extends Controller
         $token = "8578604024:AAFkqh8-rHKmMjZL_aV6KzTXs2WLupjTcV4";
         $chatId = "1735680363";
         $message = "🚨 [SERVER ALERT] 🚨\nCảnh báo: Hệ thống quá tải!\n"
-                 . "CPU: $cpu% | RAM: $ram% | DISK: $disk%\n"
-                 . "📅 Time: " . date('Y-m-d H:i:s');
-
-        $url = "https://api.telegram.org/bot$token/sendMessage?chat_id=$chatId&text=" . urlencode($message);
-        @file_get_contents($url);
+                 . "CPU: $cpu% | RAM: $ram% | DISK: $disk%";
+        @file_get_contents("https://api.telegram.org/bot$token/sendMessage?chat_id=$chatId&text=" . urlencode($message));
     }
 }
