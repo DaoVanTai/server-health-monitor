@@ -104,3 +104,5 @@ Route::get('/api/server-status', function () {
 Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
 // Route để JavaScript lấy dữ liệu cập nhật mỗi 5 giây
 Route::get('/api/server-status', [App\Http\Controllers\ServerMonitorController::class, 'getApiStatus']);
+// Route cho trang Network Center
+Route::get('/network', [App\Http\Controllers\ServerMonitorController::class, 'networkIndex'])->name('network.index');

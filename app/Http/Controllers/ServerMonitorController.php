@@ -113,6 +113,12 @@ class ServerMonitorController extends Controller
             'processes'   => $processes
         ];
     }
+    public function networkIndex(): View
+{
+    // Chúng ta vẫn lấy data từ hàm getServerMetrics có sẵn để hiển thị ban đầu
+    $data = $this->getServerMetrics(); 
+    return view('network', $data);
+}
 
     public function handleCommand(Request $request) 
     {
