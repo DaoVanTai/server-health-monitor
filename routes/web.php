@@ -102,3 +102,5 @@ Route::get('/api/server-status', function () {
 // 6. ROUTE BOT COMMAND (Giữ nguyên)
 // ==========================================
 Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
+// Route để JavaScript lấy dữ liệu cập nhật mỗi 5 giây
+Route::get('/api/server-status', [App\Http\Controllers\ServerMonitorController::class, 'getApiStatus']);

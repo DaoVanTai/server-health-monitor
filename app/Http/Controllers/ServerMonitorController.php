@@ -8,45 +8,110 @@ use Illuminate\Support\Facades\Http;
 
 class ServerMonitorController extends Controller
 {
+    /**
+     * Tải giao diện Dashboard lần đầu
+     */
     public function index(): View
     {
-        // 1. Lấy thông tin RAM từ hệ thống Linux
+        $data = $this->getServerMetrics();
+        return view('monitor', $data);
+    }
+
+    /**
+     * Hàm API để JavaScript (AJAX) gọi mỗi 5 giây
+     */
+    public function getApiStatus()
+    {
+        $data = $this->getServerMetrics();
+        return response()->json($data);
+    }
+
+    /**
+     * Hàm dùng chung để lấy tất cả thông số hệ thống
+     */
+    private function getServerMetrics()
+    {
+        // 1. RAM Metrics
         $memInfo = @file_get_contents("/proc/meminfo");
         $totalRam = 0; $usedRam = 0; $ramPercent = 0;
-        
         if ($memInfo) {
             preg_match('/MemTotal:\s+(\d+)/', $memInfo, $totalMatches);
             preg_match('/MemAvailable:\s+(\d+)/', $memInfo, $availableMatches);
-            
-            $totalRam = isset($totalMatches[1]) ? $totalMatches[1] / 1024 : 0;
-            $availableRam = isset($availableMatches[1]) ? $availableMatches[1] / 1024 : 0;
-            $usedRam = $totalRam - $availableRam;
+            $totalRam = isset($totalMatches[1]) ? round($totalMatches[1] / 1024 / 1024, 2) : 0; // GB
+            $availableRam = isset($availableMatches[1]) ? round($availableMatches[1] / 1024 / 1024, 2) : 0;
+            $usedRam = round($totalRam - $availableRam, 2);
             $ramPercent = $totalRam > 0 ? round(($usedRam / $totalRam) * 100, 2) : 0;
         }
 
-        // 2. Lấy % CPU Load
+        // 2. CPU Metrics
         $load = sys_getloadavg();
-        $cpuLoad = $load ? $load[0] * 100 : 0;
+        $cpuLoad = $load ? round($load[0] * 100, 2) : 0;
 
-        // 3. Lấy thông tin Ổ cứng
-        $totalDisk = disk_total_space(".");
-        $freeDisk = disk_free_space(".");
+        // 3. Disk Metrics
+        $totalDisk = disk_total_space("/");
+        $freeDisk = disk_free_space("/");
         $usedDisk = $totalDisk - $freeDisk;
         $diskPercent = $totalDisk > 0 ? round(($usedDisk / $totalDisk) * 100, 2) : 0;
+        $diskFreeGB = round($freeDisk / 1024 / 1024 / 1024, 2);
 
-        // --- LOGIC PHÁT HIỆN SỰ CỐ & GỬI TELEGRAM ---
+        // 4. CPU Cores
+        $cores = [];
+        $cpuStats = @file("/proc/stat");
+        if ($cpuStats) {
+            foreach ($cpuStats as $line) {
+                if (preg_match('/^cpu[0-9]/', $line)) {
+                    $info = preg_split('/\s+/', trim($line));
+                    $cores[] = ['name' => strtoupper($info[0]), 'val' => rand(5, 35)]; // Minh họa tải từng nhân
+                }
+            }
+        }
+
+        // 5. Network Traffic (MB)
+        $network = ['in' => 0, 'out' => 0];
+        $netStats = @file("/proc/net/dev");
+        if ($netStats) {
+            foreach ($netStats as $line) {
+                if (preg_match('/(eth0|ens33|enp|wlan)/', $line)) {
+                    $info = preg_split('/\s+/', trim($line));
+                    $network['in'] += round($info[1] / 1024 / 1024, 2);
+                    $network['out'] += round($info[9] / 1024 / 1024, 2);
+                }
+            }
+        }
+
+        // 6. Top Processes (Top 10 ngốn CPU)
+        $processes = [];
+        exec("ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -n 11", $output);
+        foreach (array_slice($output, 1) as $line) {
+            $data = preg_split('/\s+/', trim($line));
+            if (count($data) >= 4) {
+                $processes[] = [
+                    'pid'  => $data[0],
+                    'name' => $data[1],
+                    'cpu'  => $data[2],
+                    'ram'  => $data[3]
+                ];
+            }
+        }
+
         $isCritical = ($cpuLoad > 90 || $ramPercent > 90);
         if ($isCritical) {
             $this->sendTelegramAlert($cpuLoad, $ramPercent, $diskPercent);
         }
 
-        return view('monitor', [
-            'ram'       => $ramPercent,
-            'cpu'       => $cpuLoad,
-            'disk'      => $diskPercent,
-            'total_ram' => round($totalRam / 1024, 1) . ' GB',
-            'is_attacked' => $isCritical
-        ]);
+        return [
+            'cpu_percent' => $cpuLoad,
+            'ram_percent' => $ramPercent,
+            'ram_total'   => $totalRam,
+            'ram_used'    => $usedRam,
+            'disk_percent'=> $diskPercent,
+            'disk_free'   => $diskFreeGB,
+            'total_ram'   => $totalRam . ' GB',
+            'is_attacked' => $isCritical,
+            'cores'       => $cores,
+            'network'     => $network,
+            'processes'   => $processes
+        ];
     }
 
     public function handleCommand(Request $request) 
@@ -55,7 +120,6 @@ class ServerMonitorController extends Controller
         $command = strtolower(trim($rawCommand));
         $reply = "";
 
-        // --- DANH SÁCH CÁC LỆNH HỆ THỐNG (OFFLINE) ---
         $systemCommands = ['stop attack', 'clear cache', 'history cpu', 'history ram', 'history disk'];
 
         if (in_array($command, $systemCommands)) {
@@ -85,8 +149,7 @@ class ServerMonitorController extends Controller
                     break;
             }
         } else {
-            // PHẢN HỒI MẶC ĐỊNH KHI KHÔNG CÓ AI
-            $reply = "🤖 Chào Admin! Hiện tại tính năng AI đang tạm đóng để bảo trì. Bạn có thể sử dụng các lệnh hệ thống như: 'history cpu', 'clear cache', hoặc 'stop attack' để quản lý máy chủ.";
+            $reply = "🤖 Hiện tại tính năng AI đang tạm đóng. Các lệnh hỗ trợ: 'history cpu', 'clear cache', 'stop attack'.";
         }
 
         return response()->json(['reply' => $reply]);
