@@ -27,4 +27,10 @@ class RegisterController extends Controller
 
         return redirect('/login')->with('success', 'Đăng ký thành công! Hãy đăng nhập.');
     }
+    protected function registered(\Illuminate\Http\Request $request, $user)
+{
+    // Vừa đăng ký xong thì chắc chắn chưa có 2FA, 
+    // chặn lại không cho vào thẳng Dashboard mà bắt đi quét QR ngay!
+    return redirect()->route('2fa.setup');
+}
 }
