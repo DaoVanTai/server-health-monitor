@@ -33,4 +33,15 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
         return redirect('/login');
     }
+    protected function authenticated(Request $request, $user)
+{
+    // Nếu chưa thiết lập 2FA (Secret rỗng), bắt đi cài đặt ngay
+    if (empty($user->google2fa_secret)) {
+        return redirect()->route('2fa.setup');
+    }
+
+    // Nếu đã có Secret nhưng chưa xác thực (Challenge), 
+    // Middleware '2fa' ở trang Dashboard sẽ tự tóm bạn lại.
+    return redirect()->intended($this->redirectPath());
+}
 }

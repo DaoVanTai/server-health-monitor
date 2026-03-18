@@ -7,9 +7,7 @@ use Illuminate\Foundation\Http\Kernel as HttpKernel;
 class Kernel extends HttpKernel
 {
     /**
-     * The application's global HTTP middleware stack.
-     *
-     * These middleware are run during every request to your application.
+     * Các Middleware chạy toàn cục cho mọi yêu cầu gửi đến ứng dụng.
      *
      * @var array<int, class-string|string>
      */
@@ -24,7 +22,7 @@ class Kernel extends HttpKernel
     ];
 
     /**
-     * The application's route middleware groups.
+     * Nhóm Middleware cho các loại Route (Web và API).
      *
      * @var array<string, array<int, class-string|string>>
      */
@@ -46,9 +44,8 @@ class Kernel extends HttpKernel
     ];
 
     /**
-     * The application's middleware aliases.
-     *
-     * Aliases may be used instead of class names to conveniently assign middleware to routes and groups.
+     * Middleware Aliases (Định danh cho Middleware).
+     * Đây là nơi chúng ta khai báo tên gọi '2fa' cho thư viện bảo mật.
      *
      * @var array<string, class-string|string>
      */
@@ -64,5 +61,8 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+
+        /* --- THIẾT LẬP 2FA TẠI ĐÂY --- */
+        '2fa' => \PragmaRX\Google2FALaravel\Middleware::class,
     ];
 }

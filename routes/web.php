@@ -1,108 +1,70 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth; // Gọi thêm thư viện kiểm tra đăng nhập
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ServerMonitorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
-
+use App\Http\Controllers\SecurityController; 
 // ==========================================
-// 1. CỔNG CHÍNH (Tự động điều hướng)
+// 1. ĐIỀU HƯỚNG CỔNG CHÍNH
 // ==========================================
 Route::get('/', function () {
-    if (Auth::check()) {
-        // Nếu đã đăng nhập -> Cho vào thẳng giao diện Dashboard
-        return redirect('/monitor'); 
-    }
-    // Nếu chưa đăng nhập -> Ép văng ra trang Đăng ký đầu tiên
-    return redirect()->route('register'); 
+    // Nếu đã đăng nhập -> Vào Dashboard, chưa thì ra trang Đăng ký
+    return Auth::check() ? redirect('/monitor') : redirect()->route('register'); 
 });
 
 // ==========================================
-// 2. KHU VỰC KHÁCH (Chưa đăng nhập mới được vào)
+// 2. KHU VỰC DÀNH CHO KHÁCH (GUEST)
 // ==========================================
 Route::middleware('guest')->group(function () {
-    // Trang Đăng ký
+    // Đăng ký
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
 
-    // Trang Đăng nhập
+    // Đăng nhập
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 });
 
-// ==========================================
-// 3. NÚT ĐĂNG XUẤT
-// ==========================================
+// Đăng xuất (Dùng chung cho người đã login)
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // ==========================================
-// 4. KHU VỰC BẢO MẬT (Phải đăng nhập mới thấy)
+// 3. KHU VỰC BẮT BUỘC ĐĂNG NHẬP (AUTH)
+// Các trang này chỉ cần Login, chưa cần vượt qua lớp 2FA
 // ==========================================
 Route::middleware(['auth'])->group(function () {
-    Route::get('/monitor', function () {
-        return view('monitor');
-    })->name('monitor');
+    
+    // --- Thiết lập 2FA lần đầu ---
+    Route::get('/2fa/setup', [SecurityController::class, 'show2faForm'])->name('2fa.setup');
+    Route::post('/2fa/enable', [SecurityController::class, 'enable2fa'])->name('2fa.enable');
+
+    // --- Trang nhập mã 6 số (Challenge) ---
+    // QUAN TRỌNG: Phải có cả GET để hiện form và POST để nhận mã
+    Route::get('/2fa/verify', [SecurityController::class, 'verify2fa'])->name('2fa.verify');
+    Route::post('/2fa/verify', [SecurityController::class, 'postVerify2fa'])->name('2fa.postVerify');
+    
 });
 
 // ==========================================
-// 5. API LẤY DỮ LIỆU TỪ MÁY ẢO UBUNTU (Giữ nguyên)
+// 4. KHU VỰC BẢO VỆ NGHIÊM NGẶT (AUTH + 2FA)
+// Phải đăng nhập VÀ phải nhập đúng mã 6 số mới vào được
 // ==========================================
-Route::get('/api/server-status', function () {
-    $cpuLoad = sys_getloadavg();
-    $cpuPercent = min(round($cpuLoad[0] * 20, 2), 100); 
+Route::middleware(['auth', '2fa'])->group(function () {
+    
+    // Dashboard chính
+    Route::get('/monitor', [ServerMonitorController::class, 'index'])->name('monitor');
+    
+    // Trung tâm mạng
+    Route::get('/network', [ServerMonitorController::class, 'networkIndex'])->name('network.index');
 
-    $free = shell_exec('free -m');
-    preg_match('/Mem:\s+(\d+)\s+(\d+)\s+(\d+)/', $free, $mem);
-    $ramTotal = isset($mem[1]) ? round($mem[1] / 1024, 2) : 2.0;
-    $ramUsed = isset($mem[2]) ? round($mem[2] / 1024, 2) : 1.0;
-    $ramPercent = $ramTotal > 0 ? round(($ramUsed / $ramTotal) * 100, 2) : 0;
-
-    $diskTotal = disk_total_space('/');
-    $diskFree = disk_free_space('/');
-    $diskUsed = $diskTotal - $diskFree;
-    $diskPercent = $diskTotal > 0 ? round(($diskUsed / $diskTotal) * 100, 2) : 0;
-    $diskFreeGb = round($diskFree / 1073741824, 2);
-
-    $isAttacked = $cpuPercent > 85;
-
-    $psOutput = shell_exec("ps -eo pid,comm,%mem,%cpu --sort=-%mem | head -n 6");
-    $processes = [];
-    if ($psOutput) {
-        $lines = explode("\n", trim($psOutput));
-        array_shift($lines);
-        foreach($lines as $line) {
-            $line = preg_replace('/\s+/', ' ', trim($line));
-            if(empty($line)) continue;
-            $parts = explode(' ', $line);
-            if(count($parts) >= 4) {
-                $processes[] = [
-                    'pid' => $parts[0],
-                    'name' => substr($parts[1], 0, 15),
-                    'ram' => $parts[2],
-                    'cpu' => $parts[3]
-                ];
-            }
-        }
-    }
-
-    return response()->json([
-        'cpu_percent' => $cpuPercent,
-        'ram_percent' => $ramPercent,
-        'ram_total'   => $ramTotal,
-        'ram_used'    => $ramUsed,
-        'disk_percent'=> $diskPercent,
-        'disk_free'   => $diskFreeGb,
-        'is_attacked' => $isAttacked,
-        'processes'   => $processes 
-    ]);
+    // Các lệnh điều khiển Bot/Server nhạy cảm
+    Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
+    
 });
 
 // ==========================================
-// 6. ROUTE BOT COMMAND (Giữ nguyên)
+// 5. HỆ THỐNG API (Lấy dữ liệu thời gian thực)
 // ==========================================
-Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
-// Route để JavaScript lấy dữ liệu cập nhật mỗi 5 giây
-Route::get('/api/server-status', [App\Http\Controllers\ServerMonitorController::class, 'getApiStatus']);
-// Route cho trang Network Center
-Route::get('/network', [App\Http\Controllers\ServerMonitorController::class, 'networkIndex'])->name('network.index');
+Route::get('/api/server-status', [ServerMonitorController::class, 'getApiStatus']);

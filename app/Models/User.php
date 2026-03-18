@@ -21,7 +21,19 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google2fa_secret',
+    'google2fa_enabled',
     ];
+    public function setGoogle2faSecretAttribute($value)
+{
+    $this->attributes['google2fa_secret'] = encrypt($value);
+}
+
+// Hàm giải mã khi lấy ra dùng
+public function getGoogle2faSecretAttribute($value)
+{
+    return $value ? decrypt($value) : null;
+}
 
     /**
      * The attributes that should be hidden for serialization.
@@ -42,4 +54,5 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+    
 }
