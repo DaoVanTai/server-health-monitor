@@ -10,13 +10,15 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('blacklists', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
-
+{
+    Schema::create('blacklists', function (Blueprint $table) {
+        $table->id();
+        $table->string('ip_address');
+        $table->string('reason')->nullable();
+        $table->string('status')->default('blocked');
+        $table->timestamps();
+    });
+}
     /**
      * Reverse the migrations.
      */
