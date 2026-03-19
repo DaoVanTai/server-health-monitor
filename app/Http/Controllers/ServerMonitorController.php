@@ -48,6 +48,46 @@ class ServerMonitorController extends Controller
             'spikes'  => $topSpikes
         ]);
     }
+    /**
+     * API: Lấy trạng thái các dịch vụ lõi
+     */
+    public function getServiceStatus()
+    {
+        // Trong aaPanel, mysql thường là mysqld. php-fpm thì đi kèm phiên bản (ví dụ php-fpm-81)
+        // Bạn có thể tùy chỉnh lại tên cho đúng với server của mình.
+        $services = ['nginx', 'mysqld']; 
+        $status = [];
+
+        foreach ($services as $svc) {
+            $check = trim(@shell_exec("systemctl is-active $svc"));
+            $status[$svc] = ($check === 'active') ? 'running' : 'stopped';
+        }
+
+        return response()->json($status);
+    }
+
+    /**
+     * API: Ra lệnh điều khiển dịch vụ (Yêu cầu quyền sudo)
+     */
+    public function controlService(Request $request)
+    {
+        $service = $request->input('service');
+        $action = $request->input('action'); // restart, stop, start
+        
+        $allowed_services = ['nginx', 'mysqld'];
+        $allowed_actions = ['restart', 'stop', 'start'];
+
+        if (in_array($service, $allowed_services) && in_array($action, $allowed_actions)) {
+            // Lệnh sudo systemctl để can thiệp sâu vào hệ thống
+            $output = shell_exec("sudo systemctl $action $service 2>&1");
+            return response()->json([
+                'success' => true, 
+                'message' => "Lệnh [$action] cho dịch vụ [$service] đã được thực thi!"
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Lệnh không hợp lệ!']);
+    }
 
     /**
      * Hàm dùng chung để lấy tất cả thông số hệ thống

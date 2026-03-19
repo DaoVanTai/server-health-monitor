@@ -70,6 +70,9 @@ Route::middleware(['auth', 'enforce_2fa', '2fa'])->group(function () {
     Route::get('/api/network/active-connections', [NetworkController::class, 'getActiveConnections'])->name('network.connections');
 
     Route::get('/api/metrics/history', [ServerMonitorController::class, 'getHistoricalMetrics'])->name('metrics.history');
+    // KHU VỰC ĐIỀU KHIỂN DỊCH VỤ (SERVICE CONTROL)
+    Route::get('/api/services/status', [ServerMonitorController::class, 'getServiceStatus']);
+    Route::post('/api/services/control', [ServerMonitorController::class, 'controlService']);
 });
 
 // ==========================================
