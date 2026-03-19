@@ -41,7 +41,7 @@
             </div>
             <button type="submit">ĐĂNG NHẬP</button>
         </form>
-        <div class="link">Chưa có tài khoản? <a href="/register">Đăng ký ngay</a></div>
+        
     </div>
 </body>
 </html>
