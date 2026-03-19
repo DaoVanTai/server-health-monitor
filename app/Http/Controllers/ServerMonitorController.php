@@ -28,11 +28,11 @@ class ServerMonitorController extends Controller
     }
 
     /**
-     * BỔ SUNG: Hàm API lấy dữ liệu lịch sử 24h và các đỉnh (Spikes)
+     * BỔ SUNG: Hàm API lấy dữ liệu lịch sử và các đỉnh (Spikes)
      */
     public function getHistoricalMetrics()
     {
-        // 1. Lấy dữ liệu của 24 giờ qua, sắp xếp theo thời gian cũ -> mới để vẽ biểu đồ
+        // 1. Lấy dữ liệu của 6 giờ qua, sắp xếp theo thời gian cũ -> mới để vẽ biểu đồ
         $history = ServerMetric::where('created_at', '>=', now()->subHours(6))
                     ->orderBy('created_at', 'asc')
                     ->get();
@@ -48,18 +48,18 @@ class ServerMonitorController extends Controller
             'spikes'  => $topSpikes
         ]);
     }
+
     /**
-     * API: Lấy trạng thái các dịch vụ lõi
+     * API: Lấy trạng thái các dịch vụ lõi (ĐÃ NÂNG CẤP ĐƯỜNG DẪN TUYỆT ĐỐI)
      */
     public function getServiceStatus()
     {
-        // Trong aaPanel, mysql thường là mysqld. php-fpm thì đi kèm phiên bản (ví dụ php-fpm-81)
-        // Bạn có thể tùy chỉnh lại tên cho đúng với server của mình.
         $services = ['nginx', 'mysqld']; 
         $status = [];
 
         foreach ($services as $svc) {
-            $check = trim(@shell_exec("systemctl is-active $svc"));
+            // Dùng đường dẫn tuyệt đối /usr/bin/systemctl để tránh lỗi môi trường của PHP
+            $check = trim(@shell_exec("/usr/bin/systemctl is-active $svc 2>/dev/null"));
             $status[$svc] = ($check === 'active') ? 'running' : 'stopped';
         }
 
@@ -67,7 +67,7 @@ class ServerMonitorController extends Controller
     }
 
     /**
-     * API: Ra lệnh điều khiển dịch vụ (Yêu cầu quyền sudo)
+     * API: Ra lệnh điều khiển dịch vụ (ĐÃ NÂNG CẤP BẮT LỖI CHI TIẾT)
      */
     public function controlService(Request $request)
     {
@@ -78,11 +78,17 @@ class ServerMonitorController extends Controller
         $allowed_actions = ['restart', 'stop', 'start'];
 
         if (in_array($service, $allowed_services) && in_array($action, $allowed_actions)) {
-            // Lệnh sudo systemctl để can thiệp sâu vào hệ thống
-            $output = shell_exec("sudo systemctl $action $service 2>&1");
+            // Lấy tên User đang chạy lệnh web (thường là www)
+            $currentUser = trim(shell_exec('whoami'));
+
+            // Lệnh sudo gọi thẳng đường dẫn tuyệt đối
+            $command = "sudo /usr/bin/systemctl $action $service 2>&1";
+            $output = shell_exec($command);
+
             return response()->json([
                 'success' => true, 
-                'message' => "Lệnh [$action] cho dịch vụ [$service] đã được thực thi!"
+                // Trả về thông báo siêu chi tiết để dễ dàng bắt bệnh
+                'message' => "🧑‍💻 User thực thi: $currentUser\n⚡ Lệnh: $command\n🐧 Phản hồi từ Linux:\n" . ($output ?: '[Thành công - Không có lỗi]')
             ]);
         }
 
