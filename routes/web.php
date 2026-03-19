@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 // use App\Http\Controllers\Auth\RegisterController; // Đã vô hiệu hóa để bảo mật
 use App\Http\Controllers\SecurityController; 
 use App\Http\Controllers\MetricController;
+use App\Http\Controllers\NetworkController;
 
 // ==========================================
 // 1. ĐIỀU HƯỚNG CỔNG CHÍNH
@@ -65,6 +66,7 @@ Route::middleware(['auth', 'enforce_2fa', '2fa'])->group(function () {
     // Các lệnh điều khiển Bot/Server nhạy cảm
     Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
     
+    Route::get('/api/network/active-connections', [NetworkController::class, 'getActiveConnections'])->name('network.connections');
 });
 
 // ==========================================
