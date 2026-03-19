@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Network Center - (Server Health Monitoring & Detection System)</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/border/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         :root {
             --bg-main: #0b1120;
@@ -46,14 +51,17 @@
         .bandwidth-chart-box { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; flex: 2; height: 350px; display: flex; flex-direction: column; }
         .interface-box { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1; }
 
-        /* --- ACTIVE CONNECTIONS BOX --- */
-        .connections-box { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; margin-top: 10px; }
-        
-        .net-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-        .net-table th { text-align: left; color: var(--text-muted); padding-bottom: 12px; border-bottom: 1px solid var(--border-color); font-size: 11px; text-transform: uppercase; }
-        .net-table td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        /* --- PHẦN MỚI: CHIA ĐÔI MAP VÀ TABLE --- */
+        .detection-section { display: flex; gap: 20px; margin-top: 10px; }
+        .map-box { flex: 1.2; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; min-height: 400px; }
+        #map { height: 350px; border-radius: 8px; z-index: 1; }
 
-        /* Hiệu ứng đỏ cảnh báo cho SSH (Cổng 22) */
+        .connections-box { flex: 1.8; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        
+        .net-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        .net-table th { text-align: left; color: var(--text-muted); padding-bottom: 12px; border-bottom: 1px solid var(--border-color); text-transform: uppercase; font-size: 10px; }
+        .net-table td { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
         .row-warning td { background: rgba(239, 68, 68, 0.05); border-left: 2px solid var(--neon-red); color: var(--neon-red); animation: pulse-red 2s infinite; }
         @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
@@ -61,6 +69,10 @@
         .badge-ssh { background: rgba(239, 68, 68, 0.1); color: var(--neon-red); border: 1px solid var(--neon-red); padding: 2px 6px; border-radius: 4px; }
         .text-neon-blue { color: var(--neon-blue); font-weight: bold; }
         .dashboard-footer { text-align: right; font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+
+        /* Custom Popup cho Map */
+        .leaflet-popup-content-wrapper { background: var(--bg-card); color: white; border: 1px solid var(--border-color); }
+        .leaflet-popup-tip { background: var(--bg-card); }
     </style>
 </head>
 <body>
@@ -77,12 +89,6 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
             </div>
             <span>Network Center</span>
-        </a>
-        <a href="#" class="sidebar-item">
-            <div class="sidebar-icon-wrapper">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            </div>
-            <span>Security</span>
         </a>
     </aside>
 
@@ -120,10 +126,6 @@
             <div class="bandwidth-chart-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <span style="font-weight: bold; letter-spacing: 1px; font-size: 14px;">BANDWIDTH HISTORY (MB/s)</span>
-                    <div style="display: flex; gap: 15px; font-size: 11px;">
-                        <span style="color: var(--neon-orange);">● Download</span>
-                        <span style="color: var(--neon-purple);">● Upload</span>
-                    </div>
                 </div>
                 <div style="flex: 1;"><canvas id="bandwidthChart"></canvas></div>
             </div>
@@ -131,34 +133,33 @@
             <div class="interface-box">
                 <div style="font-weight: bold; margin-bottom: 15px; font-size: 14px;">ACTIVE INTERFACES</div>
                 <table class="net-table">
-                    <thead>
-                        <tr><th>IFACE</th><th>STATUS</th><th>TOTAL IN</th></tr>
-                    </thead>
+                    <thead><tr><th>IFACE</th><th>STATUS</th><th>TOTAL IN</th></tr></thead>
                     <tbody id="interface-list"></tbody>
                 </table>
             </div>
         </div>
 
-        <div class="connections-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-weight: bold; letter-spacing: 1px; font-size: 14px;"><i class="fas fa-network-wired"></i> ACTIVE CONNECTIONS MONITOR</span>
-                <span id="conn-count" class="badge-live" style="background: rgba(59, 130, 246, 0.1); color: var(--neon-blue);">0 Active Sessions</span>
+        <div class="detection-section">
+            <div class="map-box">
+                <div style="font-weight: bold; margin-bottom: 10px; font-size: 14px;"><i class="fas fa-map-marker-alt"></i> GEOLOCATION TRACKING</div>
+                <div id="map"></div>
             </div>
-            <div style="overflow-x: auto;">
-                <table class="net-table">
-                    <thead>
-                        <tr>
-                            <th>PROTO</th>
-                            <th>REMOTE IP (CLIENT)</th>
-                            <th>LOCAL PORT</th>
-                            <th>PROCESS</th>
-                            <th>STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="connection-list">
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Initializing security scan...</td></tr>
-                    </tbody>
-                </table>
+
+            <div class="connections-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-weight: bold; letter-spacing: 1px; font-size: 14px;"><i class="fas fa-network-wired"></i> ACTIVE CONNECTIONS</span>
+                    <span id="conn-count" class="badge-live">0 Active</span>
+                </div>
+                <div style="overflow-y: auto; max-height: 350px;">
+                    <table class="net-table">
+                        <thead>
+                            <tr><th>PROTO</th><th>CLIENT IP</th><th>PORT</th><th>PROCESS</th><th>STATUS</th></tr>
+                        </thead>
+                        <tbody id="connection-list">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Initializing security scan...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -166,9 +167,9 @@
     </main>
 
     <script>
+        // --- 1. BIỂU ĐỒ BĂNG THÔNG ---
         const ctx = document.getElementById('bandwidthChart').getContext('2d');
         let timeLabels = [], inData = [], outData = [];
-
         const bandwidthChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -179,8 +180,7 @@
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 scales: { 
                     y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
                     x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } }
@@ -189,66 +189,71 @@
             }
         });
 
-        // Hàm cập nhật băng thông & giao diện (5 giây/lần)
-        function updateNetworkStats() {
+        // --- 2. KHỞI TẠO BẢN ĐỒ ---
+        const map = L.map('map').setView([20.0, 0.0], 2); // Toàn cầu
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB'
+        }).addTo(map);
+
+        let markers = {}; // Lưu trữ các điểm để không bị vẽ đè
+
+        // --- 3. HÀM CẬP NHẬT DỮ LIỆU ---
+        function updateAllData() {
+            // Cập nhật thông số chung
             fetch('/api/server-status')
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('net-in-val').innerText = data.network.in;
                     document.getElementById('net-out-val').innerText = data.network.out;
-
                     let now = new Date().toLocaleTimeString();
                     document.getElementById('last-update').innerText = now;
                     timeLabels.push(now); inData.push(data.network.in); outData.push(data.network.out);
-                    
                     if (timeLabels.length > 20) { timeLabels.shift(); inData.shift(); outData.shift(); }
                     bandwidthChart.update();
-
-                    document.getElementById('interface-list').innerHTML = `
-                        <tr><td>eth0</td><td><span class="badge-live">UP</span></td><td>${data.network.in} MB</td></tr>
-                        <tr><td>lo</td><td><span class="badge-live" style="color:var(--text-muted)">LOCAL</span></td><td>0.01 MB</td></tr>
-                    `;
+                    document.getElementById('interface-list').innerHTML = `<tr><td>eth0</td><td><span class="badge-live">UP</span></td><td>${data.network.in} MB</td></tr>`;
                 });
-        }
 
-        // Hàm cập nhật kết nối mạng thời gian thực (3 giây/lần cho nhạy)
-        function updateActiveConnections() {
+            // Cập nhật kết nối và Bản đồ
             fetch('/api/network/active-connections')
                 .then(res => res.json())
                 .then(data => {
                     const list = document.getElementById('connection-list');
-                    const count = document.getElementById('conn-count');
-                    count.innerText = `${data.length} Active Sessions`;
-                    
+                    document.getElementById('conn-count').innerText = `${data.length} Active`;
                     list.innerHTML = '';
-                    if (data.length === 0) {
-                        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">No active connections.</td></tr>';
-                        return;
-                    }
 
                     data.forEach(conn => {
                         const isSSH = conn.local_port == '22';
                         const rowClass = isSSH ? 'row-warning' : '';
-                        const processBadge = isSSH ? `<span class="badge-ssh"><i class="fas fa-user-secret"></i> ${conn.process}</span>` : `<span>${conn.process}</span>`;
-
+                        
                         list.innerHTML += `
                             <tr class="${rowClass}">
-                                <td><span style="opacity: 0.6;">${conn.protocol}</span></td>
+                                <td><span style="opacity: 0.5;">${conn.protocol}</span></td>
                                 <td><span class="text-neon-blue">${conn.remote_ip}</span></td>
                                 <td><span style="color: var(--neon-purple)">:${conn.local_port}</span></td>
-                                <td>${processBadge}</td>
-                                <td><span class="badge-live">ESTABLISHED</span></td>
+                                <td>${isSSH ? '<span class="badge-ssh">sshd</span>' : conn.process}</td>
+                                <td><span class="badge-live">ESTAB</span></td>
                             </tr>
                         `;
+
+                        // Vẽ lên bản đồ nếu có dữ liệu tọa độ (Cần Controller trả về lat, lon)
+                        if (conn.location && conn.location.lat && !markers[conn.remote_ip]) {
+                            const marker = L.circleMarker([conn.location.lat, conn.location.lon], {
+                                radius: 6,
+                                fillColor: isSSH ? "#ef4444" : "#3b82f6",
+                                color: "#fff",
+                                weight: 1,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(map);
+                            marker.bindPopup(`<b>IP: ${conn.remote_ip}</b><br>${conn.location.city || 'Unknown'}, ${conn.location.country}`);
+                            markers[conn.remote_ip] = marker;
+                        }
                     });
                 });
         }
 
-        // Chạy lần đầu & thiết lập lặp lại
-        updateNetworkStats();
-        updateActiveConnections();
-        setInterval(updateNetworkStats, 5000);
-        setInterval(updateActiveConnections, 3000);
+        setInterval(updateAllData, 5000);
+        updateAllData();
     </script>
 </body>
 </html>

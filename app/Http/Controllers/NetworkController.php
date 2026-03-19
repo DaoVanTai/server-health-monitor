@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http; // PHẢI CÓ DÒNG NÀY
+use Illuminate\Support\Facades\Cache; // PHẢI CÓ DÒNG NÀY
 
 class NetworkController extends Controller
 {
@@ -12,63 +14,57 @@ class NetworkController extends Controller
     public function getActiveConnections()
     {
         // 1. Chạy lệnh Linux để lấy dữ liệu thô
-        // Chúng ta dùng '2>/dev/null' để loại bỏ các thông báo lỗi quyền truy cập
-        // Sửa từ 'ss -tunp established' thành:
-$rawOutput = shell_exec('ss -tunp state established 2>/dev/null');
+        $rawOutput = shell_exec('ss -tunp state established 2>/dev/null');
 
         if (empty($rawOutput)) {
-            return response()->json([]); // Trả về mảng rỗng nếu không có dữ liệu
+            return response()->json([]);
         }
 
         // 2. Bắt đầu "băm" dữ liệu
-        // Tách dữ liệu thô thành từng dòng
         $lines = explode("\n", trim($rawOutput));
         $connections = [];
 
-        // Bỏ qua dòng tiêu đề đầu tiên
         foreach (array_slice($lines, 1) as $line) {
-            // Tách các cột dựa trên khoảng trắng
             $columns = preg_split('/\s+/', trim($line));
+            if (count($columns) < 5) continue;
 
-            if (count($columns) < 5) continue; // Bỏ qua nếu dòng bị thiếu dữ liệu
-
-            // 3. Phân tích tên tiến trình (Cột cuối cùng, ví dụ: users:(("nginx",pid=123,fd=4)))
+            // 3. Phân tích tên tiến trình
             $processName = 'Unknown';
             $rawProcess = end($columns);
             if (preg_match('/"([^"]+)"/', $rawProcess, $matches)) {
-                $processName = $matches[1]; // Lấy chữ "nginx"
+                $processName = $matches[1];
             }
 
-            // 4. Phân tích IP và Cổng Nguồn/Đích
-            // Định dạng thô thường là [IP]:Cổng hoặc IP:Cổng
+            // 4. Phân tích IP và Cổng
             $local = $this->parseIpPort($columns[3]);
             $remote = $this->parseIpPort($columns[4]);
 
+            // --- BƯỚC MỚI: TRA CỨU VỊ TRÍ ĐỊA LÝ ---
+            $location = $this->getLocation($remote['ip']);
+
             // 5. Gom lại thành một bản ghi sạch sẽ
             $connections[] = [
-                'protocol' => strtoupper($columns[0]), // TCP hoặc UDP
+                'protocol' => strtoupper($columns[0]),
                 'local_ip' => $local['ip'],
                 'local_port' => $local['port'],
-                'remote_ip' => $remote['ip'], // IP của khách hàng
+                'remote_ip' => $remote['ip'],
                 'remote_port' => $remote['port'],
-                'process' => $processName, // Ứng dụng xử lý
+                'process' => $processName,
+                'location' => $location, // Đính kèm tọa độ và quốc gia vào đây
             ];
         }
 
-        // 6. Trả về dữ liệu JSON cho Frontend vẽ bảng
         return response()->json($connections);
     }
 
     /**
-     * Hàm phụ để tách IP và Cổng ra khỏi chuỗi dạng IP:Port hoặc [IPv6]:Port
+     * Tách IP và Cổng
      */
     private function parseIpPort($string)
     {
-        // Xử lý IPv6 có ngoặc vuông [::1]:80
         if (preg_match('/\[(.*)\]:(\d+)/', $string, $matches)) {
             return ['ip' => $matches[1], 'port' => $matches[2]];
         }
-        // Xử lý IPv4 thông thường 1.2.3.4:80
         $parts = explode(':', $string);
         $port = array_pop($parts);
         $ip = implode(':', $parts);
@@ -77,5 +73,30 @@ $rawOutput = shell_exec('ss -tunp state established 2>/dev/null');
             'ip' => empty($ip) || $ip == '*' ? '0.0.0.0' : $ip, 
             'port' => $port
         ];
+    }
+
+    /**
+     * Tra cứu vị trí IP (Geo-IP)
+     */
+    private function getLocation($ip) 
+    {
+        // Không tra cứu các IP nội bộ hoặc IP server
+        if ($ip == '127.0.0.1' || $ip == '0.0.0.0' || strpos($ip, '192.168.') === 0 || $ip == '103.27.61.76') {
+            return null;
+        }
+
+        // Cache trong 7 ngày để tránh tốn API limit (45 requests/min)
+        return Cache::remember('geo_ip_' . $ip, now()->addDays(7), function () use ($ip) {
+            try {
+                // Gọi API ip-api.com để lấy tọa độ và thông tin vùng
+                $response = Http::timeout(3)->get("http://ip-api.com/json/{$ip}?fields=status,country,city,lat,lon");
+                if ($response->successful() && $response->json('status') == 'success') {
+                    return $response->json();
+                }
+            } catch (\Exception $e) { 
+                return null; 
+            }
+            return null;
+        });
     }
 }
