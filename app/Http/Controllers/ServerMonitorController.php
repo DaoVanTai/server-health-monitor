@@ -231,6 +231,45 @@ class ServerMonitorController extends Controller
 
         return response()->json(['reply' => $reply]);
     }
+    /**
+     * API: Xử lý tin nhắn chat với AI (Gemini)
+     */
+    public function chatWithAI(Request $request)
+    {
+        $userMessage = $request->input('message');
+        $apiKey = env('GEMINI_API_KEY');
+
+        if (!$apiKey) {
+            return response()->json(['reply' => '⚠️ Chưa cấu hình GEMINI_API_KEY trong file .env!']);
+        }
+
+        // Tạo ngữ cảnh cho AI: Bắt nó đóng vai một chuyên gia hệ thống
+        $prompt = "Bạn là một chuyên gia quản trị hệ thống Linux và bảo mật máy chủ. 
+                   Hệ thống đang chạy đồ án Server Health Monitoring & Detection System.
+                   Hãy trả lời ngắn gọn, chuyên nghiệp và đúng trọng tâm.
+                   Câu hỏi của quản trị viên: " . $userMessage;
+
+        // Gửi yêu cầu sang Google Gemini
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
+            'contents' => [
+                ['parts' => [['text' => $prompt]]]
+            ]
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Xin lỗi, AI không thể phân tích lúc này.';
+            
+            // Xóa bớt các dấu markdown ** để text hiển thị đẹp hơn trên giao diện
+            $reply = str_replace(['**', '*'], '', $reply); 
+            
+            return response()->json(['reply' => $reply]);
+        }
+
+        return response()->json(['reply' => '🚨 Lỗi kết nối đến Server AI của Google!'], 500);
+    }
 
     private function sendTelegramAlert($cpu, $ram, $disk)
     {

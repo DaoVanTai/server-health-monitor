@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>Server Health Monitor - (Server Health Monitoring & Detection System)</title>
+    <title>Server Health Monitor - AI Aegis Edition</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -24,7 +24,7 @@
             --neon-orange: #f59e0b;
         }
 
-        body { margin: 0; padding: 0; background-color: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; display: flex; min-height: 100vh; }
+        body { margin: 0; padding: 0; background-color: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; display: flex; min-height: 100vh; overflow-x: hidden; }
         
         /* --- SIDEBAR --- */
         .sidebar { width: 70px; background-color: #0f172a; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 20px 0; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; white-space: nowrap; position: fixed; height: 100vh; z-index: 1000; }
@@ -34,122 +34,104 @@
         .sidebar-item span { opacity: 0; transform: translateX(-10px); transition: all 0.3s; font-size: 14px; font-weight: 500; }
         .sidebar:hover .sidebar-item span { opacity: 1; transform: translateX(0); }
         .sidebar-item.active { color: var(--neon-blue); border-left: 3px solid var(--neon-blue); background: rgba(59, 130, 246, 0.05); }
-        .sidebar-item:hover { color: var(--text-main); }
 
         /* --- NỘI DUNG CHÍNH --- */
         .main-content { flex: 1; margin-left: 70px; padding: 30px 40px; display: flex; flex-direction: column; gap: 20px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .title-area h1 { font-size: 28px; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
-        .title-area p { color: var(--text-muted); margin: 5px 0 0 0; font-size: 14px; }
+        .title-area h1 { font-size: 24px; letter-spacing: 2px; margin: 0; text-transform: uppercase; color: var(--text-main); }
+        .title-area p { color: var(--text-muted); margin: 5px 0 0 0; font-size: 13px; }
         
+        /* GRID LAYOUT */
         .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .metric-card { background-color: var(--bg-card); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); transition: all 0.3s ease; }
+        .metric-card { background-color: var(--bg-card); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); transition: 0.3s; }
         .metric-card:hover { transform: translateY(-5px); border-color: var(--neon-blue); }
-
         .main-value { font-size: 32px; font-weight: bold; margin: 0; }
         .card-purple .main-value { color: var(--neon-purple); }
         .card-blue .main-value { color: var(--neon-blue); }
         .card-green .main-value { color: var(--neon-green); }
 
+        /* STATUS ICONS */
         .status-ok { color: var(--neon-green); filter: drop-shadow(0 0 3px var(--neon-green)); }
         .status-warning { color: var(--neon-red); filter: drop-shadow(0 0 5px var(--neon-red)); animation: pulse-warn 1s infinite; }
-        @keyframes pulse-warn { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes pulse-warn { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         .cores-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
         .core-box { background: rgba(255,255,255,0.03); padding: 5px; border-radius: 4px; font-size: 9px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         
-        .css-progress-track { height: 6px; background-color: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; margin: 10px 0; }
+        .css-progress-track { height: 6px; background-color: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
         .css-progress-fill { height: 100%; transition: width 0.5s ease; width: 0%; }
-        
-        /* CHỈNH SỬA BOTTOM SECTION CHIA 3 CỘT */
+
+        /* SECTIONS */
+        .historical-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; gap: 20px; }
         .bottom-section { display: flex; gap: 20px; }
         .chart-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.5; min-height: 350px; }
-        .processes-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.2; display: flex; flex-direction: column;}
-        .services-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.1; display: flex; flex-direction: column;}
-        
-        .process-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
+        .processes-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.2; height: 350px; display: flex; flex-direction: column; }
+        .services-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1; display: flex; flex-direction: column; }
+
+        .process-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .process-table th { text-align: left; color: var(--text-muted); padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
-        .process-table td { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .process-table td { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
 
-        .dashboard-footer { text-align: right; font-size: 11px; color: var(--text-muted); }
+        /* AI FRIEND UI */
+        #ai-friend-panel {
+            position: fixed; bottom: 100px; right: 30px; width: 350px; height: 450px;
+            background: rgba(17, 24, 39, 0.9); backdrop-filter: blur(15px);
+            border: 1px solid var(--neon-blue); border-radius: 20px;
+            display: none; flex-direction: column; z-index: 2000;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+        }
+        .ai-avatar {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--neon-blue);
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 10px var(--neon-blue); animation: ai-pulse 2s infinite;
+        }
+        @keyframes ai-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
+        .msg-ai { align-self: flex-start; background: #1f2937; color: white; border-bottom-left-radius: 2px; }
+        .msg-user { align-self: flex-end; background: var(--neon-blue); color: white; border-bottom-right-radius: 2px; }
+        .typing { font-size: 11px; color: var(--neon-blue); display: none; margin-bottom: 5px; }
 
-        .badge-live { background: rgba(245, 158, 11, 0.1); color: var(--neon-orange); padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid var(--neon-orange); }
-        .historical-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin: 10px 0; display: flex; gap: 20px; transition: all 0.3s ease; }
-        .historical-section:hover { border-color: var(--neon-orange); box-shadow: 0 0 15px rgba(245, 158, 11, 0.1); }
+        .badge-live { background: rgba(245, 158, 11, 0.1); color: var(--neon-orange); padding: 3px 8px; border-radius: 4px; font-size: 10px; border: 1px solid var(--neon-orange); }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <a href="{{ route('monitor') }}" class="sidebar-item {{ Request::is('monitor*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 18 0M12 7v5l3 3"></path></svg>
-            </div>
-            <span>Dashboard</span>
-        </a>
-        <a href="{{ route('network.index') }}" class="sidebar-item {{ Request::is('network*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            </div>
-            <span>Network Center</span>
-        </a>
-        <a href="#" class="sidebar-item">
-            <div class="sidebar-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            </div>
-            <span>Security</span>
-        </a>
+        <a href="#" class="sidebar-item active"><div class="sidebar-icon-wrapper"><i class="fas fa-desktop"></i></div><span>Dashboard</span></a>
+        <a href="{{ route('network.index') }}" class="sidebar-item"><div class="sidebar-icon-wrapper"><i class="fas fa-network-wired"></i></div><span>Network Center</span></a>
+        <a href="#" class="sidebar-item"><div class="sidebar-icon-wrapper"><i class="fas fa-user-shield"></i></div><span>Security</span></a>
     </aside>
 
     <main class="main-content">
         <header class="header">
             <div class="title-area">
                 <h1>SYSTEM DASHBOARD</h1>
-                <p>Real-time Core Resource Monitoring</p>
+                <p>Aegis AI Monitoring System Active</p>
             </div>
-            
             <div style="display: flex; gap: 15px; align-items: center;">
-                <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
-                    @csrf
-                    <button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Log Out</button>
-                </form>
-                <div style="position: relative;">
-                    <button onclick="toggleChat()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; box-shadow: 0 0 10px var(--neon-blue); color: white;">💬</button>
-                </div>
+                <form action="{{ route('logout') }}" method="POST">@csrf<button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Log Out</button></form>
+                <button onclick="toggleAI()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; color: white; box-shadow: 0 0 15px var(--neon-blue);"><i class="fas fa-robot"></i></button>
             </div>
         </header>
 
-        <div id="attack-warning-banner" style="display:none; background-color:rgba(239,68,68,0.1); border:1px solid var(--neon-red); color:var(--neon-red); padding:15px; border-radius:6px; margin-bottom:10px; text-align:center; font-weight:bold;">[!] ALERT: SYSTEM OVERLOAD DETECTED [!]</div>
+        <div id="attack-warning-banner" style="display:none; background: rgba(239,68,68,0.1); border: 1px solid var(--neon-red); color: var(--neon-red); padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 13px;">🚨 [ALERT] SYSTEM RESOURCES CRITICAL - POTENTIAL ATTACK DETECTED 🚨</div>
 
         <div class="cards-grid">
             <div class="metric-card card-purple">
-                <div style="display:flex; justify-content: space-between; align-items:center">
-                    <span style="font-weight:bold; font-size:12px; color:var(--text-muted)">CPU LOAD</span>
-                    <div id="cpu-status-icon"></div> 
-                </div>
+                <div style="display:flex; justify-content: space-between;"><span style="font-size:11px; color:var(--text-muted)">CPU LOAD</span><div id="cpu-status-icon"></div></div>
                 <div class="main-value"><span id="cpu-main">0</span>%</div>
                 <div class="css-progress-track"><div id="cpu-bar" class="css-progress-fill" style="background: var(--neon-purple)"></div></div>
                 <div id="cores-list" class="cores-container"></div>
             </div>
-
             <div class="metric-card card-blue">
-                <div style="display:flex; justify-content: space-between; align-items:center">
-                    <span style="font-weight:bold; font-size:12px; color:var(--text-muted)">RAM USAGE</span>
-                    <div id="ram-status-icon"></div>
-                </div>
+                <div style="display:flex; justify-content: space-between;"><span style="font-size:11px; color:var(--text-muted)">RAM USAGE</span><div id="ram-status-icon"></div></div>
                 <div class="main-value"><span id="ram-main">0</span>%</div>
                 <div class="css-progress-track"><div id="ram-bar" class="css-progress-fill" style="background: var(--neon-blue)"></div></div>
-                <div style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between;">
-                    <span>Total: <span id="ram-total">0</span>GB</span>
-                    <span>Used: <span id="ram-used">0</span>GB</span>
-                </div>
+                <div style="font-size: 10px; color: var(--text-muted); display:flex; justify-content: space-between;"><span>Total: <span id="ram-total">0</span>GB</span><span>Used: <span id="ram-used">0</span>GB</span></div>
             </div>
-
             <div class="metric-card card-green">
-                <div style="display:flex; justify-content: space-between; align-items:center">
-                    <span style="font-weight:bold; font-size:12px; color:var(--text-muted)">DISK CAPACITY</span>
-                    <div id="disk-status-icon"></div>
-                </div>
+                <div style="display:flex; justify-content: space-between;"><span style="font-size:11px; color:var(--text-muted)">DISK CAPACITY</span><div id="disk-status-icon"></div></div>
                 <div class="main-value"><span id="disk-main">0</span>%</div>
                 <div class="css-progress-track"><div id="disk-bar" class="css-progress-fill" style="background: var(--neon-green)"></div></div>
                 <div style="font-size: 10px; color: var(--text-muted);">Free: <span id="disk-free">0</span>GB</div>
@@ -157,283 +139,214 @@
         </div>
 
         <div class="historical-section">
-            <div style="flex: 2.5; display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div style="font-weight:bold; color: var(--neon-orange); font-size: 14px; letter-spacing: 1px;">
-                        <i class="fas fa-history"></i> HISTORICAL RESOURCE SPIKES (6H ANALYSIS)
-                    </div>
-                    <span class="badge-live">Last 6 Hours</span>
+            <div style="flex: 2.5;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <span style="font-weight:bold; color: var(--neon-orange); font-size: 14px;"><i class="fas fa-history"></i> 6H RESOURCE ANALYSIS</span>
+                    <span class="badge-live">Live History</span>
                 </div>
-                <div style="flex: 1; height: 200px;">
-                    <canvas id="historical24hChart"></canvas>
-                </div>
+                <div style="height: 200px;"><canvas id="historical24hChart"></canvas></div>
             </div>
-
-            <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 20px; display: flex; flex-direction: column;">
-                <div style="font-weight:bold; font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">TOP 3 CPU SPIKES</div>
-                <div id="spikes-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
-                    <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding-top: 20px;">
-                        <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
-                    </div>
-                </div>
+            <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 20px;">
+                <div style="font-weight:bold; font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">TOP CPU SPIKES</div>
+                <div id="spikes-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
             </div>
         </div>
 
         <div class="bottom-section">
             <div class="chart-section">
-                <div style="font-weight:bold; margin-bottom: 20px;">CORE TRENDS (60s)</div>
+                <div style="font-weight:bold; margin-bottom: 15px; font-size: 14px;">REAL-TIME TRENDS (60s)</div>
                 <div style="height: 280px;"><canvas id="historyChart"></canvas></div>
             </div>
-
             <div class="processes-section">
-                <div style="font-weight:bold;">● LIVE PROCESS MONITOR</div>
-                <div style="overflow-y: auto; flex: 1; padding-right: 5px;">
-                    <table class="process-table">
-                        <thead>
-                            <tr><th>PID</th><th>PROCESS</th><th>CPU</th><th>RAM</th></tr>
-                        </thead>
-                        <tbody id="process-list"></tbody>
-                    </table>
-                </div>
+                <div style="font-weight:bold; font-size: 14px; margin-bottom: 15px;">LIVE PROCESSES</div>
+                <div style="overflow-y: auto; flex: 1;"><table class="process-table"><tbody id="process-list"></tbody></table></div>
             </div>
-
             <div class="services-section">
-                <div style="font-weight:bold; color: var(--neon-blue); margin-bottom: 15px;">
-                    <i class="fas fa-cogs"></i> SERVICE CONTROL
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 15px; flex: 1;">
-                    
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--neon-blue); display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: bold; font-size: 13px;">Web (Nginx)</span>
-                            <span id="status-nginx" style="font-size: 11px;"><i class="fas fa-spinner fa-spin"></i></span>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="sendServiceCommand('nginx', 'restart')" style="flex: 1; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-sync"></i> Restart</button>
-                            <button onclick="sendServiceCommand('nginx', 'stop')" style="flex: 1; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--neon-red); color: var(--neon-red); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-stop"></i> Stop</button>
+                <div style="font-weight:bold; color: var(--neon-blue); margin-bottom: 15px; font-size: 14px;"><i class="fas fa-terminal"></i> SERVICE CONTROL</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border-left: 3px solid var(--neon-blue);">
+                        <div style="display:flex; justify-content: space-between; margin-bottom: 10px;"><span style="font-size: 13px; font-weight: bold;">Nginx</span><span id="status-nginx" style="font-size: 11px;"></span></div>
+                        <div style="display:flex; gap: 5px;">
+                            <button onclick="sendSvc('nginx', 'restart')" style="flex:1; background:rgba(59,130,246,0.1); border:1px solid var(--neon-blue); color:var(--neon-blue); font-size:10px; padding:5px; cursor:pointer;">RESTART</button>
+                            <button onclick="sendSvc('nginx', 'stop')" style="flex:1; background:rgba(239,68,68,0.1); border:1px solid var(--neon-red); color:var(--neon-red); font-size:10px; padding:5px; cursor:pointer;">STOP</button>
                         </div>
                     </div>
-
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--neon-purple); display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: bold; font-size: 13px;">DB (MySQL)</span>
-                            <span id="status-mysqld" style="font-size: 11px;"><i class="fas fa-spinner fa-spin"></i></span>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="sendServiceCommand('mysqld', 'restart')" style="flex: 1; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--neon-purple); color: var(--neon-purple); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-sync"></i> Restart</button>
-                        </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border-left: 3px solid var(--neon-purple);">
+                        <div style="display:flex; justify-content: space-between; margin-bottom: 10px;"><span style="font-size: 13px; font-weight: bold;">MySQL</span><span id="status-mysqld" style="font-size: 11px;"></span></div>
+                        <button onclick="sendSvc('mysqld', 'restart')" style="width:100%; background:rgba(168,85,247,0.1); border:1px solid var(--neon-purple); color:var(--neon-purple); font-size:10px; padding:5px; cursor:pointer;">RESTART DATABASE</button>
                     </div>
-
                 </div>
             </div>
         </div>
-        
-        <div class="dashboard-footer">Last sync: <span id="last-update-time">--:--:--</span></div>
+
+        <div id="ai-friend-panel">
+            <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
+                <div class="ai-avatar"><i class="fas fa-ghost" style="font-size: 16px;"></i></div>
+                <div><div style="font-weight: bold; font-size: 14px;">Aegis AI</div><div style="font-size: 10px; color: var(--neon-green);">System Guardian Active</div></div>
+                <button onclick="toggleAI()" style="margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="chat-messages">
+                <div class="msg msg-ai">Hệ thống xin chào! Tôi là Aegis. Tôi đã sẵn sàng phân tích dữ liệu server cho bạn.</div>
+            </div>
+            <div style="padding: 15px;">
+                <div id="ai-typing" class="typing"><i class="fas fa-spinner fa-spin"></i> Aegis đang phân tích dữ liệu...</div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="ai-input" placeholder="Hỏi Aegis..." style="flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border-color); border-radius:8px; padding:8px 12px; color:white; font-size:13px; outline:none;" onkeypress="if(event.key==='Enter') sendAI()">
+                    <button onclick="sendAI()" style="background: var(--neon-blue); border:none; border-radius:8px; width:40px; color:white; cursor:pointer;"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-footer">Last sync: <span id="last-update-time">--:--:--</span> | Status: <span style="color:var(--neon-green)">Secure</span></div>
     </main>
 
     <script>
-        // ==========================================
-        // 1. BIỂU ĐỒ REAL-TIME 60S
-        // ==========================================
-        const ctx = document.getElementById('historyChart').getContext('2d');
-        let timeLabels = [], cpuData = [], ramData = [];
-        const historyChart = new Chart(ctx, {
+        // --- 1. REAL-TIME CHART ---
+        const ctx60s = document.getElementById('historyChart').getContext('2d');
+        let labels60s = [], cpu60s = [], ram60s = [];
+        const chart60s = new Chart(ctx60s, {
             type: 'line',
-            data: {
-                labels: timeLabels,
-                datasets: [
-                    { label: 'CPU', data: cpuData, borderColor: '#a855f7', tension: 0.4, fill: false, borderWidth: 2, pointRadius: 0 },
-                    { label: 'RAM', data: ramData, borderColor: '#3b82f6', tension: 0.4, fill: false, borderWidth: 2, pointRadius: 0 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: { 
-                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
-                    x: { display: false }
-                },
-                plugins: { legend: { display: false } }
-            }
+            data: { labels: labels60s, datasets: [
+                { label: 'CPU', data: cpu60s, borderColor: '#a855f7', tension: 0.4, borderWeight: 2, pointRadius: 0 },
+                { label: 'RAM', data: ram60s, borderColor: '#3b82f6', tension: 0.4, borderWeight: 2, pointRadius: 0 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { display: false } }, plugins: { legend: { display: false } } }
         });
 
-        function updateDashboard() {
-            fetch('/api/server-status')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('cpu-main').innerText = data.cpu_percent;
-                    document.getElementById('cpu-bar').style.width = data.cpu_percent + '%';
-                    document.getElementById('ram-main').innerText = data.ram_percent;
-                    document.getElementById('ram-bar').style.width = data.ram_percent + '%';
-                    document.getElementById('ram-total').innerText = data.ram_total;
-                    document.getElementById('ram-used').innerText = data.ram_used;
-                    document.getElementById('disk-main').innerText = data.disk_percent;
-                    document.getElementById('disk-bar').style.width = data.disk_percent + '%';
-                    document.getElementById('disk-free').innerText = data.disk_free;
-                    
-                    const setStatusIcon = (id, val, limit) => {
-                        const el = document.getElementById(id);
-                        if (val > limit) {
-                            el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="status-warning"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"></path></svg>`;
-                        } else {
-                            el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="status-ok"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
-                        }
-                    };
-                    setStatusIcon('cpu-status-icon', data.cpu_percent, 80);
-                    setStatusIcon('ram-status-icon', data.ram_percent, 85);
-                    setStatusIcon('disk-status-icon', data.disk_percent, 90);
-
-                    let coresHtml = '';
-                    data.cores.forEach(c => {
-                        coresHtml += `<div class="core-box">${c.name}<div class="css-progress-track" style="height:3px; margin:2px 0"><div class="css-progress-fill" style="width:${c.val}%; background:#a855f7"></div></div></div>`;
-                    });
-                    document.getElementById('cores-list').innerHTML = coresHtml;
-
-                    document.getElementById('attack-warning-banner').style.display = data.is_attacked ? 'block' : 'none';
-
-                    let procHtml = '';
-                    data.processes.forEach(p => {
-                        procHtml += `<tr><td>#${p.pid}</td><td style="font-weight:bold">${p.name}</td><td>${p.cpu}%</td><td>${p.ram}%</td></tr>`;
-                    });
-                    document.getElementById('process-list').innerHTML = procHtml;
-
-                    let now = new Date().toLocaleTimeString();
-                    document.getElementById('last-update-time').innerText = now;
-                    timeLabels.push(now); cpuData.push(data.cpu_percent); ramData.push(data.ram_percent);
-                    if (timeLabels.length > 15) { timeLabels.shift(); cpuData.shift(); ramData.shift(); }
-                    historyChart.update();
-                });
-        }
-        setInterval(updateDashboard, 5000); 
-        updateDashboard();
-
-        // ==========================================
-        // 2. BIỂU ĐỒ LỊCH SỬ LƯU TRỮ
-        // ==========================================
-        const ctx24h = document.getElementById('historical24hChart').getContext('2d');
-        const chart24h = new Chart(ctx24h, {
+        // --- 2. HISTORICAL CHART ---
+        const ctx6h = document.getElementById('historical24hChart').getContext('2d');
+        const chart6h = new Chart(ctx6h, {
             type: 'line',
             data: { labels: [], datasets: [] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                scales: {
-                    y: { max: 100, min: 0, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: {size: 10}, callback: val => val + '%' } },
-                    x: { grid: { display: false }, ticks: { color: '#9ca3af', font: {size: 10}, maxTicksLimit: 12 } }
-                },
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: { label: context => `${context.dataset.label}: ${context.parsed.y}%` }
-                    }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100, ticks: { color: '#9ca3af', font: {size: 9} } }, x: { ticks: { color: '#9ca3af', font: {size: 9}, maxTicksLimit: 10 } } }, plugins: { legend: { display: false } } }
         });
 
-        function updateHistoricalData() {
-            fetch('/api/metrics/history')
-                .then(res => res.json())
-                .then(data => {
-                    if(data.history.length === 0) {
-                        document.getElementById('spikes-list').innerHTML = '<div style="font-size: 12px; color: var(--neon-green); text-align:center;">Hệ thống ổn định. Chưa có cảnh báo.</div>';
-                        return;
-                    }
+        // --- 3. UPDATES ---
+        function updateAll() {
+            fetch('/api/server-status').then(res => res.json()).then(data => {
+                // Main Metrics
+                document.getElementById('cpu-main').innerText = data.cpu_percent;
+                document.getElementById('cpu-bar').style.width = data.cpu_percent + '%';
+                document.getElementById('ram-main').innerText = data.ram_percent;
+                document.getElementById('ram-bar').style.width = data.ram_percent + '%';
+                document.getElementById('ram-total').innerText = data.ram_total;
+                document.getElementById('ram-used').innerText = data.ram_used;
+                document.getElementById('disk-main').innerText = data.disk_percent;
+                document.getElementById('disk-bar').style.width = data.disk_percent + '%';
+                document.getElementById('disk-free').innerText = data.disk_free;
 
-                    const histLabels = data.history.map(item => {
-                        let d = new Date(item.created_at);
-                        return `${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()}`;
-                    });
-                    
-                    const histCpu = data.history.map(item => item.cpu_percent);
-                    const histRam = data.history.map(item => item.ram_percent);
+                // Status Icons
+                const setIcon = (id, val, limit) => {
+                    document.getElementById(id).innerHTML = val > limit ? 
+                    `<i class="fas fa-exclamation-triangle status-warning"></i>` : 
+                    `<i class="fas fa-check-circle status-ok"></i>`;
+                };
+                setIcon('cpu-status-icon', data.cpu_percent, 80);
+                setIcon('ram-status-icon', data.ram_percent, 85);
+                setIcon('disk-status-icon', data.disk_percent, 90);
 
-                    const cpuRadii = histCpu.map(val => val > 80 ? 5 : 0);
-                    const cpuColors = histCpu.map(val => val > 80 ? '#ef4444' : '#f59e0b');
+                // Cores
+                let cHtml = '';
+                data.cores.forEach(c => { cHtml += `<div class="core-box">${c.name}<div class="css-progress-track" style="height:2px; margin-top:3px;"><div class="css-progress-fill" style="width:${c.val}%; background:var(--neon-purple)"></div></div></div>`; });
+                document.getElementById('cores-list').innerHTML = cHtml;
 
-                    chart24h.data.labels = histLabels;
-                    chart24h.data.datasets = [
-                        {
-                            label: 'CPU Usage', data: histCpu, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            borderWidth: 2, tension: 0.4, fill: true, pointRadius: cpuRadii, pointBackgroundColor: cpuColors, pointBorderColor: '#fff'
-                        },
-                        {
-                            label: 'RAM Usage', data: histRam, borderColor: '#3b82f6', borderWidth: 2, tension: 0.4, pointRadius: 0
-                        }
-                    ];
-                    chart24h.update();
+                // Processes
+                let pHtml = '';
+                data.processes.forEach(p => { pHtml += `<tr><td style="color:var(--neon-blue)">#${p.pid}</td><td style="font-weight:bold">${p.name}</td><td>${p.cpu}%</td><td>${p.ram}%</td></tr>`; });
+                document.getElementById('process-list').innerHTML = pHtml;
 
-                    const spikesList = document.getElementById('spikes-list');
-                    spikesList.innerHTML = '';
-                    
-                    data.spikes.forEach(spike => {
-                        let d = new Date(spike.created_at);
-                        let timeStr = `${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()} - ${d.getDate()}/${d.getMonth()+1}`;
-                        let colorVar = spike.cpu_percent > 90 ? 'var(--neon-red)' : 'var(--neon-orange)';
-                        let bgVar = spike.cpu_percent > 90 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+                // Banner
+                document.getElementById('attack-warning-banner').style.display = data.is_attacked ? 'block' : 'none';
 
-                        spikesList.innerHTML += `
-                            <div style="background: ${bgVar}; border-left: 3px solid ${colorVar}; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="color: var(--text-main); font-weight: bold; font-size: 13px;">${timeStr}</div>
-                                    <div style="color: ${colorVar}; font-size: 11px; margin-top: 4px;">
-                                        <i class="fas fa-fire"></i> CPU Spiked to ${spike.cpu_percent}%
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }).catch(err => console.error(err));
-        }
-        updateHistoricalData();
-        setInterval(updateHistoricalData, 300000); 
-
-        // ==========================================
-        // 3. ĐIỀU KHIỂN DỊCH VỤ TỪ XA (MỚI THÊM)
-        // ==========================================
-        function updateServices() {
-            fetch('/api/services/status')
-                .then(res => res.json())
-                .then(data => {
-                    ['nginx', 'mysqld'].forEach(svc => {
-                        const el = document.getElementById('status-' + svc);
-                        if (data[svc] === 'running') {
-                            el.innerHTML = '<span style="color: var(--neon-green);"><i class="fas fa-circle"></i> Running</span>';
-                        } else {
-                            el.innerHTML = '<span style="color: var(--neon-red);"><i class="fas fa-times-circle"></i> Stopped</span>';
-                        }
-                    });
-                })
-                .catch(err => console.error("Lỗi cập nhật dịch vụ: ", err));
-        }
-        // Tự động kiểm tra trạng thái mỗi 10 giây
-        setInterval(updateServices, 10000);
-        updateServices();
-
-        function sendServiceCommand(service, action) {
-            if(!confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn [${action.toUpperCase()}] dịch vụ ${service}? Hành động này sẽ tác động trực tiếp lên Server!`)) return;
-            
-            // Lấy chìa khóa bảo mật CSRF
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            
-            fetch('/api/services/control', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: JSON.stringify({ service: service, action: action })
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(data.message);
-                updateServices(); // Cập nhật lại đèn trạng thái ngay lập tức
-            })
-            .catch(err => {
-                alert("Lỗi kết nối tới hệ thống điều khiển!");
-                console.error(err);
+                // Chart Real-time
+                let now = new Date().toLocaleTimeString();
+                labels60s.push(now); cpu60s.push(data.cpu_percent); ram60s.push(data.ram_percent);
+                if(labels60s.length > 20) { labels60s.shift(); cpu60s.shift(); ram60s.shift(); }
+                chart60s.update();
+                document.getElementById('last-update-time').innerText = now;
             });
         }
 
-        function toggleChat() { alert("AI Assistant is ready!"); }
+        function updateHistory() {
+            fetch('/api/metrics/history').then(res => res.json()).then(data => {
+                if(data.history.length === 0) return;
+                const hLabels = data.history.map(h => { let d = new Date(h.created_at); return `${d.getHours()}:${d.getMinutes()<10?'0':''}${d.getMinutes()}`; });
+                const hCpu = data.history.map(h => h.cpu_percent);
+                const hRam = data.history.map(h => h.ram_percent);
+                const radii = hCpu.map(v => v > 80 ? 4 : 0);
+                
+                chart6h.data.labels = hLabels;
+                chart6h.data.datasets = [
+                    { label: 'CPU', data: hCpu, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.05)', fill: true, pointRadius: radii, pointBackgroundColor: '#ef4444', tension: 0.3 },
+                    { label: 'RAM', data: hRam, borderColor: '#3b82f6', tension: 0.3, pointRadius: 0 }
+                ];
+                chart6h.update();
+
+                let sHtml = '';
+                data.spikes.forEach(s => {
+                    let d = new Date(s.created_at);
+                    sHtml += `<div style="background:rgba(255,255,255,0.02); padding:8px; border-radius:6px; border-left:3px solid var(--neon-red); font-size:11px;">
+                        <strong>${d.getHours()}:${d.getMinutes()<10?'0':''}${d.getMinutes()}</strong> - CPU: <span style="color:var(--neon-red)">${s.cpu_percent}%</span>
+                    </div>`;
+                });
+                document.getElementById('spikes-list').innerHTML = sHtml || '<div style="font-size:11px; color:var(--neon-green)">No spikes detected</div>';
+            });
+        }
+
+        function updateSvc() {
+            fetch('/api/services/status').then(res => res.json()).then(data => {
+                ['nginx', 'mysqld'].forEach(s => {
+                    const el = document.getElementById('status-' + s);
+                    el.innerHTML = data[s] === 'running' ? 
+                    '<span style="color:var(--neon-green)">● RUNNING</span>' : 
+                    '<span style="color:var(--neon-red)">● STOPPED</span>';
+                });
+            });
+        }
+
+        function sendSvc(s, a) {
+            if(!confirm(`Xác nhận ${a} dịch vụ ${s}?`)) return;
+            fetch('/api/services/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                body: JSON.stringify({ service: s, action: a })
+            }).then(res => res.json()).then(d => { alert(d.message); updateSvc(); });
+        }
+
+        // --- 4. AI LOGIC ---
+        function toggleAI() { const p = document.getElementById('ai-friend-panel'); p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; }
+        
+        function sendAI() {
+            const i = document.getElementById('ai-input');
+            const m = i.value.trim();
+            if(!m) return;
+            appendMsg(m, 'user'); i.value = '';
+            document.getElementById('ai-typing').style.display = 'block';
+            
+            fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                body: JSON.stringify({ message: m })
+            }).then(res => res.json()).then(d => {
+                document.getElementById('ai-typing').style.display = 'none';
+                appendMsg(d.reply, 'ai');
+            }).catch(() => {
+                document.getElementById('ai-typing').style.display = 'none';
+                appendMsg("Mất kết nối với trung tâm điều hành.", 'ai');
+            });
+        }
+
+        function appendMsg(t, s) {
+            const b = document.getElementById('chat-messages');
+            const d = document.createElement('div');
+            d.className = `msg msg-${s}`; d.innerText = t;
+            b.appendChild(d); b.scrollTop = b.scrollHeight;
+        }
+
+        // INITIALIZE
+        setInterval(updateAll, 5000); updateAll();
+        setInterval(updateHistory, 300000); updateHistory();
+        setInterval(updateSvc, 10000); updateSvc();
     </script>
 </body>
 </html>
