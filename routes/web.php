@@ -4,11 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ServerMonitorController;
 use App\Http\Controllers\Auth\LoginController;
-// use App\Http\Controllers\Auth\RegisterController; // Đã vô hiệu hóa để bảo mật
-use App\Http\Controllers\SecurityController; 
 use App\Http\Controllers\MetricController;
 use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\FirewallController;
+use App\Http\Controllers\AegisController;
 
 // ==========================================
 // 1. ĐIỀU HƯỚNG CỔNG CHÍNH
@@ -75,7 +74,9 @@ Route::middleware(['auth', 'enforce_2fa', '2fa'])->group(function () {
     Route::get('/api/services/status', [ServerMonitorController::class, 'getServiceStatus']);
     Route::post('/api/services/control', [ServerMonitorController::class, 'controlService']);
 });
-
+Route::get('/ai-intelligence', function () {
+    return view('ai_intelligence');
+})->name('ai.index');
 // ==========================================
 // 5. HỆ THỐNG API (Lấy dữ liệu thời gian thực)
 // ==========================================
@@ -86,3 +87,4 @@ Route::get('/test-metrics', [MetricController::class, 'captureRealData']);
 Route::get('/firewall', [FirewallController::class, 'index'])->name('firewall.index');
 Route::post('/firewall/block', [FirewallController::class, 'blockIP'])->name('firewall.block');
 Route::post('/firewall/unblock/{id}', [FirewallController::class, 'unblockIP'])->name('firewall.unblock');
+Route::get('/ai-intelligence', [AegisController::class, 'index'])->name('ai.index');

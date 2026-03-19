@@ -76,6 +76,12 @@
             </div>
             <span>Security</span>
         </a>
+        <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
+    <div class="sidebar-icon-wrapper">
+        <i class="fas fa-brain"></i>
+    </div>
+    <span>AI Insight</span>
+</a>
     </aside>
 
     <main class="main-content">

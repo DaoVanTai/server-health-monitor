@@ -98,6 +98,12 @@
         <i class="fas fa-shield-alt"></i> </div>
     <span>Security</span>
 </a>
+<a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
+    <div class="sidebar-icon-wrapper">
+        <i class="fas fa-brain"></i>
+    </div>
+    <span>AI Insight</span>
+</a>
     </aside>
 
     <main class="main-content">
@@ -112,9 +118,7 @@
                     @csrf
                     <button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Log Out</button>
                 </form>
-                <div style="position: relative;">
-                    <button onclick="toggleChat()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; box-shadow: 0 0 10px var(--neon-blue); color: white;">💬</button>
-                </div>
+                
             </div>
         </header>
 
@@ -432,7 +436,7 @@
             });
         }
 
-        function toggleChat() { alert("AI Assistant is ready!"); }
+        
     </script>
 </body>
 </html>
