@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\SecurityController; 
 use App\Http\Controllers\MetricController;
 use App\Http\Controllers\NetworkController;
+use App\Http\Controllers\FirewallController;
 
 // ==========================================
 // 1. ĐIỀU HƯỚNG CỔNG CHÍNH
@@ -82,3 +83,6 @@ Route::get('/api/server-status', [ServerMonitorController::class, 'getApiStatus'
 
 // Lấy thông số thực tế từ VPS Ubuntu
 Route::get('/test-metrics', [MetricController::class, 'captureRealData']);
+Route::get('/firewall', [FirewallController::class, 'index'])->name('firewall.index');
+Route::post('/firewall/block', [FirewallController::class, 'blockIP'])->name('firewall.block');
+Route::post('/firewall/unblock/{id}', [FirewallController::class, 'unblockIP'])->name('firewall.unblock');
