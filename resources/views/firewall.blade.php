@@ -86,8 +86,8 @@
             <form action="{{ route('firewall.block') }}" method="POST">
                 @csrf
                 <div class="input-group">
-                    <input type="text" name="ip_address" placeholder="Địa chỉ IP (Ví dụ: 1.2.3.4)" required>
-                    <input type="text" name="reason" placeholder="Lý do chặn (Ví dụ: Brute Force Attack)">
+                    <input type="text" name="ip_address" placeholder="Địa chỉ IP " required>
+                    <input type="text" name="reason" placeholder="Lý do chặn ">
                     <button type="submit" class="btn-block">CHẶN IP NGAY</button>
                 </div>
             </form>
