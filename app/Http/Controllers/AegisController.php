@@ -34,7 +34,7 @@ class AegisController extends Controller
         }
         $insights[] = "> STATUS: Hệ thống đang vận hành với " . $threatCount . " quy tắc tường lửa.";
 
-        return view('aiintelligence', [
+        return view('monitor', [
             'score' => round($healthScore),
             'threats' => $threatCount,
             'insights' => $insights,
