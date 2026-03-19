@@ -68,3 +68,6 @@ Route::middleware(['auth', '2fa'])->group(function () {
 // 5. HỆ THỐNG API (Lấy dữ liệu thời gian thực)
 // ==========================================
 Route::get('/api/server-status', [ServerMonitorController::class, 'getApiStatus']);
+use App\Http\Controllers\MetricController;
+
+Route::get('/test-metrics', [MetricController::class, 'captureRealData']);
