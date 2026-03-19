@@ -157,9 +157,9 @@
             <div style="flex: 2.5; display: flex; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <div style="font-weight:bold; color: var(--neon-orange); font-size: 14px; letter-spacing: 1px;">
-                        <i class="fas fa-history"></i> HISTORICAL RESOURCE SPIKES (24H ANALYSIS)
+                        <i class="fas fa-history"></i> HISTORICAL RESOURCE SPIKES (6H ANALYSIS)
                     </div>
-                    <span class="badge-live">Last 24 Hours</span>
+                    <span class="badge-live">Last 6 Hours</span>
                 </div>
                 <div style="flex: 1; height: 200px;">
                     <canvas id="historical24hChart"></canvas>

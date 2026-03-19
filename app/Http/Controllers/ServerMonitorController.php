@@ -33,12 +33,12 @@ class ServerMonitorController extends Controller
     public function getHistoricalMetrics()
     {
         // 1. Lấy dữ liệu của 24 giờ qua, sắp xếp theo thời gian cũ -> mới để vẽ biểu đồ
-        $history = ServerMetric::where('created_at', '>=', now()->subHours(24))
+        $history = ServerMetric::where('created_at', '>=', now()->subHours(6))
                     ->orderBy('created_at', 'asc')
                     ->get();
 
         // 2. Tìm ra 3 thời điểm (Đỉnh) mà CPU hoạt động cao nhất
-        $topSpikes = ServerMetric::where('created_at', '>=', now()->subHours(24))
+        $topSpikes = ServerMetric::where('created_at', '>=', now()->subHours(6))
                     ->orderBy('cpu_percent', 'desc')
                     ->limit(3)
                     ->get();
