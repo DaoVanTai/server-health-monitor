@@ -64,5 +64,6 @@ class Kernel extends HttpKernel
 
         /* --- THIẾT LẬP 2FA TẠI ĐÂY --- */
         '2fa' => \PragmaRX\Google2FALaravel\Middleware::class,
+        'enforce_2fa' => \App\Http\Middleware\Enforce2FASetup::class,
     ];
 }

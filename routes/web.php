@@ -53,7 +53,8 @@ Route::middleware(['auth'])->group(function () {
 // 4. KHU VỰC BẢO VỆ NGHIÊM NGẶT (AUTH + 2FA)
 // Phải đăng nhập VÀ phải nhập đúng mã 6 số mới vào được
 // ==========================================
-Route::middleware(['auth', '2fa'])->group(function () {
+// Sửa lại dòng này thành 3 lớp giáp
+Route::middleware(['auth', 'enforce_2fa', '2fa'])->group(function () {
     
     // Dashboard chính
     Route::get('/monitor', [ServerMonitorController::class, 'index'])->name('monitor');
