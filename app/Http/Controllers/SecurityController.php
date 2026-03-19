@@ -11,31 +11,30 @@ class SecurityController extends Controller
     /**
      * Bước 1: Hiển thị trang thiết lập 2FA và mã QR
      */
-    /**
-     * Bước 1: Hiển thị trang thiết lập 2FA và mã QR
-     */
-    public function show2faForm(\Illuminate\Http\Request $request)
+    public function show2faForm(Request $request)
     {
         $user = auth()->user();
         $google2fa = app('pragmarx.google2fa');
 
-        // Nếu User chưa có Secret Key trong table, hãy tạo mới và lưu lại
-        if (!$user->google2fa_secret) {
-            $user->google2fa_secret = $google2fa->generateSecretKey();
-            $user->save();
+        // [TỐI ƯU BẢO MẬT]: Lưu tạm mã Secret vào Session thay vì Database
+        // Để tránh trường hợp user chưa quét QR mà đã thoát trang
+        $secret = $request->session()->get('2fa_setup_secret');
+
+        if (!$secret) {
+            $secret = $google2fa->generateSecretKey();
+            $request->session()->put('2fa_setup_secret', $secret);
         }
 
-        // TẠO MÃ QR DẠNG ẢNH SVG (Dùng getQRCodeInline thay vì getQRCodeUrl)
+        // Tạo mã QR dạng ảnh SVG
         $qrCodeSvg = $google2fa->getQRCodeInline(
-            'Server Health Monitor', // Tên ngắn gọn sẽ hiện trên app Google Authenticator của điện thoại
+            'Server Health Monitor', // Tên dự án
             $user->email,
-            $user->google2fa_secret
+            $secret
         );
 
-        // Gửi biến $qrCodeSvg sang cho file Blade
         return view('auth.2fa_setup', [
-            'qrCodeSvg' => $qrCodeSvg, // Tên biến này phải khớp với file blade
-            'secret' => $user->google2fa_secret
+            'qrCodeSvg' => $qrCodeSvg,
+            'secret' => $secret
         ]);
     }
 
@@ -47,38 +46,49 @@ class SecurityController extends Controller
         $user = auth()->user();
         $google2fa = app('pragmarx.google2fa');
 
-        // Kiểm tra mã 6 số người dùng nhập vào
-        $secret = $request->input('verify_code');
-        $valid = $google2fa->verifyKey($user->google2fa_secret, $secret);
+        // Lấy lại mã Secret đang lưu tạm trong Session
+        $secret = $request->session()->get('2fa_setup_secret');
+        $verifyCode = $request->input('verify_code');
+
+        // Kiểm tra xem mã 6 số nhập vào có khớp với mã QR không
+        $valid = $google2fa->verifyKey($secret, $verifyCode);
 
         if ($valid) {
-            $user->google2fa_enabled = true;
+            // [THÀNH CÔNG]: Lúc này mới CHÍNH THỨC lưu vào Database
+            $user->google2fa_secret = $secret;
             $user->save();
+
+            // Xóa bộ nhớ tạm
+            $request->session()->forget('2fa_setup_secret');
+
             return redirect()->route('monitor')->with('success', '2FA đã được kích hoạt thành công!');
         }
 
+        // [THẤT BẠI]: Nhập sai mã 6 số
         return redirect()->back()->with('error', 'Mã xác nhận không đúng, vui lòng thử lại.');
     }
 
     /**
-     * Bước 3: Trang nhập mã 2FA mỗi khi đăng nhập mới (Challenge)
+     * Bước 3: Trang nhập mã 2FA mỗi khi đăng nhập mới
      */
     public function verify2fa(Request $request)
     {
         return view('auth.2fa_verify');
     }
-    // Thêm hàm này vào SecurityController
-public function postVerify2fa(Request $request)
-{
-    // Thư viện sẽ tự động kiểm tra mã one_time_password người dùng gửi lên
-    $authenticator = app(Authenticator::class)->boot($request);
 
-    if ($authenticator->isAuthenticated()) {
-        // Nếu đúng mã, cho vào Dashboard
-        return redirect()->intended(route('monitor'));
+    /**
+     * Bước 4: Xử lý kiểm tra mã khi đăng nhập
+     */
+    public function postVerify2fa(Request $request)
+    {
+        // Lưu ý: Input name ở giao diện (file blade) BẮT BUỘC phải đặt là name="one_time_password"
+        // vì thư viện Authenticator mặc định sẽ tìm cái tên này.
+        $authenticator = app(Authenticator::class)->boot($request);
+
+        if ($authenticator->isAuthenticated()) {
+            return redirect()->intended(route('monitor'));
+        }
+
+        return redirect()->back()->withErrors(['message' => 'Mã xác nhận không chính xác.']);
     }
-
-    // Nếu sai mã, quay lại trang nhập mã với thông báo lỗi
-    return redirect()->back()->withErrors(['message' => 'Mã xác nhận không chính xác.']);
-}
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kích hoạt 2FA - CampusExpense Manager</title>
+    <title>Kích hoạt 2FA - (Server Health Monitoring & Detection System)</title>
     <style>
         :root {
             --bg-main: #0b1120;
