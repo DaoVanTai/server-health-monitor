@@ -4,25 +4,27 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ServerMonitorController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
+// use App\Http\Controllers\Auth\RegisterController; // Đã vô hiệu hóa để bảo mật
 use App\Http\Controllers\SecurityController; 
+use App\Http\Controllers\MetricController;
+
 // ==========================================
 // 1. ĐIỀU HƯỚNG CỔNG CHÍNH
 // ==========================================
 Route::get('/', function () {
-    // Nếu đã đăng nhập -> Vào Dashboard, chưa thì ra trang Đăng ký
-    return Auth::check() ? redirect('/monitor') : redirect()->route('register'); 
+    // Nếu đã đăng nhập -> Vào Dashboard, chưa thì ra thẳng trang Đăng nhập
+    return Auth::check() ? redirect('/monitor') : redirect()->route('login'); 
 });
 
 // ==========================================
 // 2. KHU VỰC DÀNH CHO KHÁCH (GUEST)
 // ==========================================
 Route::middleware('guest')->group(function () {
-    // Đăng ký
-    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [RegisterController::class, 'register']);
+    // [ĐÃ KHÓA CỬA] Tính năng Đăng ký tự do
+    // Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    // Route::post('/register', [RegisterController::class, 'register']);
 
-    // Đăng nhập
+    // Đăng nhập (Cửa vào duy nhất của hệ thống)
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 });
@@ -68,6 +70,6 @@ Route::middleware(['auth', '2fa'])->group(function () {
 // 5. HỆ THỐNG API (Lấy dữ liệu thời gian thực)
 // ==========================================
 Route::get('/api/server-status', [ServerMonitorController::class, 'getApiStatus']);
-use App\Http\Controllers\MetricController;
 
+// Lấy thông số thực tế từ VPS Ubuntu
 Route::get('/test-metrics', [MetricController::class, 'captureRealData']);
