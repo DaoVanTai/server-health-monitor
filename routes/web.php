@@ -82,4 +82,3 @@ Route::get('/api/server-status', [ServerMonitorController::class, 'getApiStatus'
 
 // Lấy thông số thực tế từ VPS Ubuntu
 Route::get('/test-metrics', [MetricController::class, 'captureRealData']);
-Route::post('/api/ai/chat', [ServerMonitorController::class, 'chatWithAI']);

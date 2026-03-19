@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>Server Health Monitor - Dashboard</title>
+    <title>Server Health Monitor - (Server Health Monitoring & Detection System)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -34,6 +34,7 @@
         .sidebar-item span { opacity: 0; transform: translateX(-10px); transition: all 0.3s; font-size: 14px; font-weight: 500; }
         .sidebar:hover .sidebar-item span { opacity: 1; transform: translateX(0); }
         .sidebar-item.active { color: var(--neon-blue); border-left: 3px solid var(--neon-blue); background: rgba(59, 130, 246, 0.05); }
+        .sidebar-item:hover { color: var(--text-main); }
 
         /* --- NỘI DUNG CHÍNH --- */
         .main-content { flex: 1; margin-left: 70px; padding: 30px 40px; display: flex; flex-direction: column; gap: 20px; }
@@ -60,9 +61,11 @@
         .css-progress-track { height: 6px; background-color: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; margin: 10px 0; }
         .css-progress-fill { height: 100%; transition: width 0.5s ease; width: 0%; }
         
+        /* CHỈNH SỬA BOTTOM SECTION CHIA 3 CỘT */
         .bottom-section { display: flex; gap: 20px; }
-        .chart-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.8; min-height: 350px; }
-        .processes-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.2; }
+        .chart-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.5; min-height: 350px; }
+        .processes-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.2; display: flex; flex-direction: column;}
+        .services-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.1; display: flex; flex-direction: column;}
         
         .process-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
         .process-table th { text-align: left; color: var(--text-muted); padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
@@ -70,40 +73,31 @@
 
         .dashboard-footer { text-align: right; font-size: 11px; color: var(--text-muted); }
 
-        /* PHẦN 6H VÀ SERVICE CONTROL - GIỮ NGUYÊN KIỂU CŨ */
         .badge-live { background: rgba(245, 158, 11, 0.1); color: var(--neon-orange); padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid var(--neon-orange); }
-        .historical-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin: 10px 0; display: flex; gap: 20px; }
-        
-        .services-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-
-        /* ==========================================
-           KHUNG CHAT AI AEGIS (GỌN GÀNG)
-           ========================================== */
-        #ai-chat-box {
-            position: fixed; bottom: 100px; right: 40px; width: 350px; height: 450px;
-            background: #111827; border: 1px solid var(--neon-blue); border-radius: 15px;
-            display: none; flex-direction: column; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        #chat-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(59,130,246,0.1); border-radius: 15px 15px 0 0; }
-        #chat-body { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px; border-radius: 10px; font-size: 13px; line-height: 1.4; }
-        .msg-ai { align-self: flex-start; background: #1f2937; color: var(--text-main); }
-        .msg-user { align-self: flex-end; background: var(--neon-blue); color: white; }
-        #chat-footer { padding: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; }
-        #chat-footer input { flex: 1; background: #0b1120; border: 1px solid var(--border-color); border-radius: 5px; padding: 8px; color: white; outline: none; }
-        #chat-footer button { background: var(--neon-blue); border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .historical-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin: 10px 0; display: flex; gap: 20px; transition: all 0.3s ease; }
+        .historical-section:hover { border-color: var(--neon-orange); box-shadow: 0 0 15px rgba(245, 158, 11, 0.1); }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <a href="{{ route('monitor') }}" class="sidebar-item active">
-            <div class="sidebar-icon-wrapper"><i class="fas fa-th-large"></i></div>
+        <a href="{{ route('monitor') }}" class="sidebar-item {{ Request::is('monitor*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 18 0M12 7v5l3 3"></path></svg>
+            </div>
             <span>Dashboard</span>
         </a>
-        <a href="{{ route('network.index') }}" class="sidebar-item">
-            <div class="sidebar-icon-wrapper"><i class="fas fa-network-wired"></i></div>
+        <a href="{{ route('network.index') }}" class="sidebar-item {{ Request::is('network*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
             <span>Network Center</span>
+        </a>
+        <a href="#" class="sidebar-item">
+            <div class="sidebar-icon-wrapper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <span>Security</span>
         </a>
     </aside>
 
@@ -115,17 +109,17 @@
             </div>
             
             <div style="display: flex; gap: 15px; align-items: center;">
-                <form action="{{ route('logout') }}" method="POST">
+                <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
                     @csrf
                     <button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Log Out</button>
                 </form>
                 <div style="position: relative;">
-                    <button onclick="toggleAIChat()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; box-shadow: 0 0 15px var(--neon-blue); color: white;">
-                        <i class="fas fa-robot"></i>
-                    </button>
+                    <button onclick="toggleChat()" style="background: var(--neon-blue); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; box-shadow: 0 0 10px var(--neon-blue); color: white;">💬</button>
                 </div>
             </div>
         </header>
+
+        <div id="attack-warning-banner" style="display:none; background-color:rgba(239,68,68,0.1); border:1px solid var(--neon-red); color:var(--neon-red); padding:15px; border-radius:6px; margin-bottom:10px; text-align:center; font-weight:bold;">[!] ALERT: SYSTEM OVERLOAD DETECTED [!]</div>
 
         <div class="cards-grid">
             <div class="metric-card card-purple">
@@ -145,6 +139,10 @@
                 </div>
                 <div class="main-value"><span id="ram-main">0</span>%</div>
                 <div class="css-progress-track"><div id="ram-bar" class="css-progress-fill" style="background: var(--neon-blue)"></div></div>
+                <div style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span>Total: <span id="ram-total">0</span>GB</span>
+                    <span>Used: <span id="ram-used">0</span>GB</span>
+                </div>
             </div>
 
             <div class="metric-card card-green">
@@ -154,6 +152,7 @@
                 </div>
                 <div class="main-value"><span id="disk-main">0</span>%</div>
                 <div class="css-progress-track"><div id="disk-bar" class="css-progress-fill" style="background: var(--neon-green)"></div></div>
+                <div style="font-size: 10px; color: var(--text-muted);">Free: <span id="disk-free">0</span>GB</div>
             </div>
         </div>
 
@@ -161,159 +160,280 @@
             <div style="flex: 2.5; display: flex; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <div style="font-weight:bold; color: var(--neon-orange); font-size: 14px; letter-spacing: 1px;">
-                        <i class="fas fa-history"></i> HISTORICAL ANALYSIS (6H)
+                        <i class="fas fa-history"></i> HISTORICAL RESOURCE SPIKES (6H ANALYSIS)
                     </div>
                     <span class="badge-live">Last 6 Hours</span>
                 </div>
-                <div style="flex: 1; height: 200px;"><canvas id="historicalChart"></canvas></div>
+                <div style="flex: 1; height: 200px;">
+                    <canvas id="historical24hChart"></canvas>
+                </div>
             </div>
-            <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 20px;">
+
+            <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 20px; display: flex; flex-direction: column;">
                 <div style="font-weight:bold; font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">TOP 3 CPU SPIKES</div>
-                <div id="spikes-list"></div>
+                <div id="spikes-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                    <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding-top: 20px;">
+                        <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="bottom-section">
             <div class="chart-section">
                 <div style="font-weight:bold; margin-bottom: 20px;">CORE TRENDS (60s)</div>
-                <div style="height: 280px;"><canvas id="realtimeChart"></canvas></div>
+                <div style="height: 280px;"><canvas id="historyChart"></canvas></div>
             </div>
+
             <div class="processes-section">
                 <div style="font-weight:bold;">● LIVE PROCESS MONITOR</div>
-                <table class="process-table"><tbody id="process-list"></tbody></table>
-                
-                <div class="services-section">
-                    <div style="font-weight:bold; color: var(--neon-blue); font-size: 14px;"><i class="fas fa-terminal"></i> SERVICE CONTROL</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;">
-                        <span>Nginx: </span><span id="status-nginx"></span>
-                        <button onclick="sendControl('nginx', 'restart')" style="float:right; background:none; border:1px solid var(--neon-blue); color:var(--neon-blue); font-size:10px; padding:2px 5px; cursor:pointer;">Restart</button>
+                <div style="overflow-y: auto; flex: 1; padding-right: 5px;">
+                    <table class="process-table">
+                        <thead>
+                            <tr><th>PID</th><th>PROCESS</th><th>CPU</th><th>RAM</th></tr>
+                        </thead>
+                        <tbody id="process-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="services-section">
+                <div style="font-weight:bold; color: var(--neon-blue); margin-bottom: 15px;">
+                    <i class="fas fa-cogs"></i> SERVICE CONTROL
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 15px; flex: 1;">
+                    
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--neon-blue); display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: bold; font-size: 13px;">Web (Nginx)</span>
+                            <span id="status-nginx" style="font-size: 11px;"><i class="fas fa-spinner fa-spin"></i></span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="sendServiceCommand('nginx', 'restart')" style="flex: 1; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-sync"></i> Restart</button>
+                            <button onclick="sendServiceCommand('nginx', 'stop')" style="flex: 1; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--neon-red); color: var(--neon-red); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-stop"></i> Stop</button>
+                        </div>
                     </div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;">
-                        <span>MySQL: </span><span id="status-mysqld"></span>
-                        <button onclick="sendControl('mysqld', 'restart')" style="float:right; background:none; border:1px solid var(--neon-purple); color:var(--neon-purple); font-size:10px; padding:2px 5px; cursor:pointer;">Restart</button>
+
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--neon-purple); display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: bold; font-size: 13px;">DB (MySQL)</span>
+                            <span id="status-mysqld" style="font-size: 11px;"><i class="fas fa-spinner fa-spin"></i></span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="sendServiceCommand('mysqld', 'restart')" style="flex: 1; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--neon-purple); color: var(--neon-purple); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-sync"></i> Restart</button>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
-
-        <div id="ai-chat-box">
-            <div id="chat-header">
-                <span style="font-weight: bold; color: white;"><i class="fas fa-robot"></i> Aegis AI Assistant</span>
-                <i class="fas fa-times" onclick="toggleAIChat()" style="cursor: pointer;"></i>
-            </div>
-            <div id="chat-body">
-                <div class="msg msg-ai">Chào Admin! Tôi là Aegis. Tôi đã sẵn sàng hỗ trợ bạn giám sát hệ thống.</div>
-            </div>
-            <div id="chat-footer">
-                <input type="text" id="ai-input" placeholder="Hỏi gì đó..." onkeypress="if(event.key==='Enter') sendChat()">
-                <button onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
-            </div>
-        </div>
-
+        
         <div class="dashboard-footer">Last sync: <span id="last-update-time">--:--:--</span></div>
     </main>
 
     <script>
-        // --- CÁC BIẾN BIỂU ĐỒ ---
-        const rtCtx = document.getElementById('realtimeChart').getContext('2d');
-        const hsCtx = document.getElementById('historicalChart').getContext('2d');
-        let rtLabels = [], rtCpu = [], rtRam = [];
-
-        const realtimeChart = new Chart(rtCtx, {
+        // ==========================================
+        // 1. BIỂU ĐỒ REAL-TIME 60S
+        // ==========================================
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        let timeLabels = [], cpuData = [], ramData = [];
+        const historyChart = new Chart(ctx, {
             type: 'line',
-            data: { labels: rtLabels, datasets: [
-                { label: 'CPU', data: rtCpu, borderColor: '#a855f7', tension: 0.4, pointRadius: 0 },
-                { label: 'RAM', data: rtRam, borderColor: '#3b82f6', tension: 0.4, pointRadius: 0 }
-            ]},
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 }, x: { display: false } }, plugins: { legend: { display: false } } }
+            data: {
+                labels: timeLabels,
+                datasets: [
+                    { label: 'CPU', data: cpuData, borderColor: '#a855f7', tension: 0.4, fill: false, borderWidth: 2, pointRadius: 0 },
+                    { label: 'RAM', data: ramData, borderColor: '#3b82f6', tension: 0.4, fill: false, borderWidth: 2, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { 
+                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
         });
 
-        const historicalChart = new Chart(hsCtx, {
+        function updateDashboard() {
+            fetch('/api/server-status')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('cpu-main').innerText = data.cpu_percent;
+                    document.getElementById('cpu-bar').style.width = data.cpu_percent + '%';
+                    document.getElementById('ram-main').innerText = data.ram_percent;
+                    document.getElementById('ram-bar').style.width = data.ram_percent + '%';
+                    document.getElementById('ram-total').innerText = data.ram_total;
+                    document.getElementById('ram-used').innerText = data.ram_used;
+                    document.getElementById('disk-main').innerText = data.disk_percent;
+                    document.getElementById('disk-bar').style.width = data.disk_percent + '%';
+                    document.getElementById('disk-free').innerText = data.disk_free;
+                    
+                    const setStatusIcon = (id, val, limit) => {
+                        const el = document.getElementById(id);
+                        if (val > limit) {
+                            el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="status-warning"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"></path></svg>`;
+                        } else {
+                            el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="status-ok"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+                        }
+                    };
+                    setStatusIcon('cpu-status-icon', data.cpu_percent, 80);
+                    setStatusIcon('ram-status-icon', data.ram_percent, 85);
+                    setStatusIcon('disk-status-icon', data.disk_percent, 90);
+
+                    let coresHtml = '';
+                    data.cores.forEach(c => {
+                        coresHtml += `<div class="core-box">${c.name}<div class="css-progress-track" style="height:3px; margin:2px 0"><div class="css-progress-fill" style="width:${c.val}%; background:#a855f7"></div></div></div>`;
+                    });
+                    document.getElementById('cores-list').innerHTML = coresHtml;
+
+                    document.getElementById('attack-warning-banner').style.display = data.is_attacked ? 'block' : 'none';
+
+                    let procHtml = '';
+                    data.processes.forEach(p => {
+                        procHtml += `<tr><td>#${p.pid}</td><td style="font-weight:bold">${p.name}</td><td>${p.cpu}%</td><td>${p.ram}%</td></tr>`;
+                    });
+                    document.getElementById('process-list').innerHTML = procHtml;
+
+                    let now = new Date().toLocaleTimeString();
+                    document.getElementById('last-update-time').innerText = now;
+                    timeLabels.push(now); cpuData.push(data.cpu_percent); ramData.push(data.ram_percent);
+                    if (timeLabels.length > 15) { timeLabels.shift(); cpuData.shift(); ramData.shift(); }
+                    historyChart.update();
+                });
+        }
+        setInterval(updateDashboard, 5000); 
+        updateDashboard();
+
+        // ==========================================
+        // 2. BIỂU ĐỒ LỊCH SỬ LƯU TRỮ
+        // ==========================================
+        const ctx24h = document.getElementById('historical24hChart').getContext('2d');
+        const chart24h = new Chart(ctx24h, {
             type: 'line',
             data: { labels: [], datasets: [] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { max: 100, min: 0, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: {size: 10}, callback: val => val + '%' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af', font: {size: 10}, maxTicksLimit: 12 } }
+                },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: context => `${context.dataset.label}: ${context.parsed.y}%` }
+                    }
+                }
+            }
         });
 
-        // --- CẬP NHẬT DỮ LIỆU ---
-        function updateDashboard() {
-            fetch('/api/server-status').then(res => res.json()).then(data => {
-                document.getElementById('cpu-main').innerText = data.cpu_percent;
-                document.getElementById('cpu-bar').style.width = data.cpu_percent + '%';
-                document.getElementById('ram-main').innerText = data.ram_percent;
-                document.getElementById('ram-bar').style.width = data.ram_percent + '%';
-                document.getElementById('disk-main').innerText = data.disk_percent;
-                document.getElementById('disk-bar').style.width = data.disk_percent + '%';
+        function updateHistoricalData() {
+            fetch('/api/metrics/history')
+                .then(res => res.json())
+                .then(data => {
+                    if(data.history.length === 0) {
+                        document.getElementById('spikes-list').innerHTML = '<div style="font-size: 12px; color: var(--neon-green); text-align:center;">Hệ thống ổn định. Chưa có cảnh báo.</div>';
+                        return;
+                    }
 
-                let pHtml = '';
-                data.processes.forEach(p => { pHtml += `<tr><td>#${p.pid}</td><td><b>${p.name}</b></td><td>${p.cpu}%</td><td>${p.ram}%</td></tr>`; });
-                document.getElementById('process-list').innerHTML = pHtml;
+                    const histLabels = data.history.map(item => {
+                        let d = new Date(item.created_at);
+                        return `${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()}`;
+                    });
+                    
+                    const histCpu = data.history.map(item => item.cpu_percent);
+                    const histRam = data.history.map(item => item.ram_percent);
 
-                let now = new Date().toLocaleTimeString();
-                rtLabels.push(now); rtCpu.push(data.cpu_percent); rtRam.push(data.ram_percent);
-                if(rtLabels.length > 15) { rtLabels.shift(); rtCpu.shift(); rtRam.shift(); }
-                realtimeChart.update();
-                document.getElementById('last-update-time').innerText = now;
-            });
+                    const cpuRadii = histCpu.map(val => val > 80 ? 5 : 0);
+                    const cpuColors = histCpu.map(val => val > 80 ? '#ef4444' : '#f59e0b');
+
+                    chart24h.data.labels = histLabels;
+                    chart24h.data.datasets = [
+                        {
+                            label: 'CPU Usage', data: histCpu, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            borderWidth: 2, tension: 0.4, fill: true, pointRadius: cpuRadii, pointBackgroundColor: cpuColors, pointBorderColor: '#fff'
+                        },
+                        {
+                            label: 'RAM Usage', data: histRam, borderColor: '#3b82f6', borderWidth: 2, tension: 0.4, pointRadius: 0
+                        }
+                    ];
+                    chart24h.update();
+
+                    const spikesList = document.getElementById('spikes-list');
+                    spikesList.innerHTML = '';
+                    
+                    data.spikes.forEach(spike => {
+                        let d = new Date(spike.created_at);
+                        let timeStr = `${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()} - ${d.getDate()}/${d.getMonth()+1}`;
+                        let colorVar = spike.cpu_percent > 90 ? 'var(--neon-red)' : 'var(--neon-orange)';
+                        let bgVar = spike.cpu_percent > 90 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+
+                        spikesList.innerHTML += `
+                            <div style="background: ${bgVar}; border-left: 3px solid ${colorVar}; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="color: var(--text-main); font-weight: bold; font-size: 13px;">${timeStr}</div>
+                                    <div style="color: ${colorVar}; font-size: 11px; margin-top: 4px;">
+                                        <i class="fas fa-fire"></i> CPU Spiked to ${spike.cpu_percent}%
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }).catch(err => console.error(err));
         }
+        updateHistoricalData();
+        setInterval(updateHistoricalData, 300000); 
 
-        function updateHistory() {
-            fetch('/api/metrics/history').then(res => res.json()).then(data => {
-                const labels = data.history.map(h => { let d = new Date(h.created_at); return d.getHours() + ":" + d.getMinutes(); });
-                historicalChart.data.labels = labels;
-                historicalChart.data.datasets = [{ label: 'CPU', data: data.history.map(h => h.cpu_percent), borderColor: '#f59e0b', fill: true, backgroundColor: 'rgba(245,158,11,0.1)', tension: 0.4 }];
-                historicalChart.update();
-            });
-        }
-
+        // ==========================================
+        // 3. ĐIỀU KHIỂN DỊCH VỤ TỪ XA (MỚI THÊM)
+        // ==========================================
         function updateServices() {
-            fetch('/api/services/status').then(res => res.json()).then(data => {
-                document.getElementById('status-nginx').innerHTML = data.nginx === 'running' ? '<span style="color:var(--neon-green)">● Running</span>' : '<span style="color:var(--neon-red)">● Stopped</span>';
-                document.getElementById('status-mysqld').innerHTML = data.mysqld === 'running' ? '<span style="color:var(--neon-green)">● Running</span>' : '<span style="color:var(--neon-red)">● Stopped</span>';
-            });
+            fetch('/api/services/status')
+                .then(res => res.json())
+                .then(data => {
+                    ['nginx', 'mysqld'].forEach(svc => {
+                        const el = document.getElementById('status-' + svc);
+                        if (data[svc] === 'running') {
+                            el.innerHTML = '<span style="color: var(--neon-green);"><i class="fas fa-circle"></i> Running</span>';
+                        } else {
+                            el.innerHTML = '<span style="color: var(--neon-red);"><i class="fas fa-times-circle"></i> Stopped</span>';
+                        }
+                    });
+                })
+                .catch(err => console.error("Lỗi cập nhật dịch vụ: ", err));
         }
+        // Tự động kiểm tra trạng thái mỗi 10 giây
+        setInterval(updateServices, 10000);
+        updateServices();
 
-        function sendControl(svc, act) {
+        function sendServiceCommand(service, action) {
+            if(!confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn [${action.toUpperCase()}] dịch vụ ${service}? Hành động này sẽ tác động trực tiếp lên Server!`)) return;
+            
+            // Lấy chìa khóa bảo mật CSRF
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             fetch('/api/services/control', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify({ service: svc, action: act })
-            }).then(res => res.json()).then(d => { alert(d.message); updateServices(); });
-        }
-
-        // --- AI CHAT LOGIC ---
-        function toggleAIChat() {
-            const box = document.getElementById('ai-chat-box');
-            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-        }
-
-        function sendChat() {
-            const input = document.getElementById('ai-input');
-            const msg = input.value;
-            if(!msg) return;
-            appendMsg(msg, 'user');
-            input.value = '';
-
-            fetch('/api/ai/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify({ message: msg })
-            }).then(res => res.json()).then(data => {
-                appendMsg(data.reply, 'ai');
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ service: service, action: action })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                updateServices(); // Cập nhật lại đèn trạng thái ngay lập tức
+            })
+            .catch(err => {
+                alert("Lỗi kết nối tới hệ thống điều khiển!");
+                console.error(err);
             });
         }
 
-        function appendMsg(text, sender) {
-            const body = document.getElementById('chat-body');
-            const div = document.createElement('div');
-            div.className = `msg msg-${sender}`;
-            div.innerText = text;
-            body.appendChild(div);
-            body.scrollTop = body.scrollHeight;
-        }
-
-        setInterval(updateDashboard, 5000); updateDashboard();
-        setInterval(updateServices, 10000); updateServices();
-        updateHistory();
+        function toggleChat() { alert("AI Assistant is ready!"); }
     </script>
 </body>
 </html>
