@@ -93,12 +93,11 @@
             </div>
             <span>Network Center</span>
         </a>
-        <a href="#" class="sidebar-item">
-            <div class="sidebar-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            </div>
-            <span>Security</span>
-        </a>
+        <a href="{{ route('firewall.index') }}" class="sidebar-item {{ Request::is('firewall*') ? 'active' : '' }}">
+    <div class="sidebar-icon-wrapper">
+        <i class="fas fa-shield-alt"></i> </div>
+    <span>Security</span>
+</a>
     </aside>
 
     <main class="main-content">

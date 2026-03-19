@@ -90,6 +90,12 @@
             </div>
             <span>Network Center</span>
         </a>
+        <a href="{{ route('firewall.index') }}" class="sidebar-item {{ Request::is('firewall*') ? 'active' : '' }}">
+    <div class="sidebar-icon-wrapper">
+        <i class="fas fa-shield-alt"></i>
+    </div>
+    <span>Security</span>
+</a>
     </aside>
 
     <main class="main-content">
