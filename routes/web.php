@@ -66,7 +66,10 @@ Route::middleware(['auth', 'enforce_2fa', '2fa'])->group(function () {
     // Các lệnh điều khiển Bot/Server nhạy cảm
     Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
     
+
     Route::get('/api/network/active-connections', [NetworkController::class, 'getActiveConnections'])->name('network.connections');
+
+    Route::get('/api/metrics/history', [ServerMonitorController::class, 'getHistoricalMetrics'])->name('metrics.history');
 });
 
 // ==========================================

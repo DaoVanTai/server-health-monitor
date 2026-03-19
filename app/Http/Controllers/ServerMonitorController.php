@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\View\View; 
 use Illuminate\Support\Facades\Http;
+use App\Models\ServerMetric; // BỔ SUNG: Khai báo Model để lấy dữ liệu lịch sử
 
 class ServerMonitorController extends Controller
 {
@@ -24,6 +25,28 @@ class ServerMonitorController extends Controller
     {
         $data = $this->getServerMetrics();
         return response()->json($data);
+    }
+
+    /**
+     * BỔ SUNG: Hàm API lấy dữ liệu lịch sử 24h và các đỉnh (Spikes)
+     */
+    public function getHistoricalMetrics()
+    {
+        // 1. Lấy dữ liệu của 24 giờ qua, sắp xếp theo thời gian cũ -> mới để vẽ biểu đồ
+        $history = ServerMetric::where('created_at', '>=', now()->subHours(24))
+                    ->orderBy('created_at', 'asc')
+                    ->get();
+
+        // 2. Tìm ra 3 thời điểm (Đỉnh) mà CPU hoạt động cao nhất
+        $topSpikes = ServerMetric::where('created_at', '>=', now()->subHours(24))
+                    ->orderBy('cpu_percent', 'desc')
+                    ->limit(3)
+                    ->get();
+
+        return response()->json([
+            'history' => $history,
+            'spikes'  => $topSpikes
+        ]);
     }
 
     /**
@@ -113,12 +136,13 @@ class ServerMonitorController extends Controller
             'processes'   => $processes
         ];
     }
+    
     public function networkIndex(): View
-{
-    // Chúng ta vẫn lấy data từ hàm getServerMetrics có sẵn để hiển thị ban đầu
-    $data = $this->getServerMetrics(); 
-    return view('network', $data);
-}
+    {
+        // Chúng ta vẫn lấy data từ hàm getServerMetrics có sẵn để hiển thị ban đầu
+        $data = $this->getServerMetrics(); 
+        return view('network', $data);
+    }
 
     public function handleCommand(Request $request) 
     {
@@ -142,7 +166,8 @@ class ServerMonitorController extends Controller
                 case 'history ram':
                 case 'history disk':
                     $type = str_replace('history ', '', $command);
-                    $logs = \App\Models\ServerMetric::orderBy('created_at', 'desc')->take(5)->get();
+                    // Rút gọn lại vì đã use App\Models\ServerMetric; ở trên
+                    $logs = ServerMetric::orderBy('created_at', 'desc')->take(5)->get();
                     if ($logs->isEmpty()) {
                         $reply = "Kho lưu trữ trống. Đang chờ thu thập dữ liệu từ Crontab...";
                     } else {
