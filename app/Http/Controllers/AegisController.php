@@ -76,11 +76,11 @@ class AegisController extends Controller
 
                 try {
                     // Gọi sang Google Gemini
-                    $response = Http::post("[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){$apiKey}", [
-                        'contents' => [
-                            ['parts' => [['text' => $prompt]]]
-                        ]
-                    ]);
+                    $response = Http::post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey, [
+    'contents' => [
+        ['parts' => [['text' => $prompt]]]
+    ]
+]);
 
                     $resultText = $response->json('candidates.0.content.parts.0.text');
                     
