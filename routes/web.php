@@ -67,25 +67,25 @@ Route::middleware(['auth', 'enforce_2fa', '2fa'])->group(function () {
     // Các lệnh điều khiển Bot/Server nhạy cảm
     Route::post('/bot/command', [ServerMonitorController::class, 'handleCommand']);
     
-
     Route::get('/api/network/active-connections', [NetworkController::class, 'getActiveConnections'])->name('network.connections');
 
     Route::get('/api/metrics/history', [ServerMonitorController::class, 'getHistoricalMetrics'])->name('metrics.history');
+    
     // KHU VỰC ĐIỀU KHIỂN DỊCH VỤ (SERVICE CONTROL)
     Route::get('/api/services/status', [ServerMonitorController::class, 'getServiceStatus']);
     Route::post('/api/services/control', [ServerMonitorController::class, 'controlService']);
+
+    // ĐƯA CÁC TRANG QUAN TRỌNG VÀO BÊN TRONG KHU VỰC BẢO MẬT
+    Route::get('/test-metrics', [MetricController::class, 'captureRealData']);
+    Route::get('/firewall', [FirewallController::class, 'index'])->name('firewall.index');
+    Route::post('/firewall/block', [FirewallController::class, 'blockIP'])->name('firewall.block');
+    Route::post('/firewall/unblock/{id}', [FirewallController::class, 'unblockIP'])->name('firewall.unblock');
+    
+    // TRANG AI ĐÃ ĐƯỢC GIỮ LẠI ĐÚNG 1 ĐƯỜNG DẪN CHUẨN
+    Route::get('/ai-intelligence', [AegisController::class, 'index'])->name('ai.index');
 });
-Route::get('/ai-intelligence', function () {
-    return view('ai_intelligence');
-})->name('ai.index');
+
 // ==========================================
 // 5. HỆ THỐNG API (Lấy dữ liệu thời gian thực)
 // ==========================================
 Route::get('/api/server-status', [ServerMonitorController::class, 'getApiStatus']);
-
-// Lấy thông số thực tế từ VPS Ubuntu
-Route::get('/test-metrics', [MetricController::class, 'captureRealData']);
-Route::get('/firewall', [FirewallController::class, 'index'])->name('firewall.index');
-Route::post('/firewall/block', [FirewallController::class, 'blockIP'])->name('firewall.block');
-Route::post('/firewall/unblock/{id}', [FirewallController::class, 'unblockIP'])->name('firewall.unblock');
-Route::get('/ai-intelligence', [AegisController::class, 'index'])->name('ai.index');

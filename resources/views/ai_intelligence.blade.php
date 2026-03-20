@@ -148,7 +148,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <p style="color: var(--text-muted); letter-spacing: 1px; margin: 0;">Mô đun Tương tác NLP & Phân tích trực quan</p>
-            <div style="color: #22c55e; font-size: 14px; font-weight: bold;"><i class="fas fa-shield-check"></i> Health Score: {{ $score }}/100</div>
+            <div style="color: #22c55e; font-size: 14px; font-weight: bold;"><i class="fas fa-shield-check"></i> Health Score: {{ $score ?? 100 }}/100</div>
         </div>
 
         <div class="ai-grid">
@@ -183,9 +183,11 @@
         // --- LOGIC TERMINAL ---
         const dynamicLogs = [
             { type: 'line-success', text: "[OK] Đã xác thực kết nối qua API Key." },
-            @foreach($insights as $insight)
-            { type: 'line-ai', text: "{!! $insight !!}" },
-            @endforeach
+            @if(isset($insights))
+                @foreach($insights as $insight)
+                { type: 'line-ai', text: {!! json_encode($insight) !!} },
+                @endforeach
+            @endif
             { type: 'line-info', text: "> Hệ thống đang phân tích các gói tin nền..." }
         ];
         let index = 0;
@@ -213,8 +215,8 @@
 
         // Nếu vừa gửi lệnh form, lấy dữ liệu từ Server đẩy vào mảng
         @if(request()->has('ai_command'))
-            const userCmd = "{!! addslashes(request()->get('ai_command')) !!}";
-            const aiResp = "{!! addslashes($aiResponse ?? '') !!}";
+            const userCmd = {!! json_encode(request()->get('ai_command')) !!};
+            const aiResp = {!! json_encode($aiResponse ?? '') !!};
             
             // Chống nhân bản (duplicate) khi nhấn F5
             const lastMsg = chatHistory[chatHistory.length - 1];
