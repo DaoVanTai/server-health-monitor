@@ -112,7 +112,7 @@ class AegisController extends Controller
                     }
 
                 } catch (\Exception $e) {
-                    $aiResponse = "> Aegis Offline: Lỗi kết nối Neural Core. (Cần kiểm tra lại mạng hoặc API Key).";
+                    $aiResponse = "> Aegis Offline: Lỗi kết nối. CHI TIẾT LỖI: " . $e->getMessage();
                 }
             }
         }
