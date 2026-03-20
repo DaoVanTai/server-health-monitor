@@ -125,8 +125,9 @@ class AegisController extends Controller
                     }
 
                 } catch (\Exception $e) {
-                    $aiResponse = "> Aegis Offline: Lỗi mạng nội bộ. Chi tiết: " . $e->getMessage();
-                }
+    // In thẳng lỗi ra màn hình để biết tại sao không load được
+    return "LỖI KẾT NỐI AI: " . $e->getMessage();
+}
             }
         }
 
