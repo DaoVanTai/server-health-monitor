@@ -64,11 +64,11 @@
         .stat-value { font-size: 32px; font-weight: bold; color: var(--neon-purple); margin: 5px 0; }
         
         .btn-ai { 
-            width: 100%; background: linear-gradient(45deg, var(--neon-purple), #7e22ce); 
+            background: linear-gradient(45deg, var(--neon-cyan), #0284c7); 
             color: white; border: none; padding: 12px; border-radius: 8px; 
-            cursor: pointer; font-weight: bold; margin-top: 15px; transition: 0.3s;
+            cursor: pointer; font-weight: bold; transition: 0.3s;
         }
-        .btn-ai:hover { box-shadow: 0 0 15px var(--neon-purple); filter: brightness(1.1); }
+        .btn-ai:hover { box-shadow: 0 0 15px var(--neon-cyan); filter: brightness(1.1); }
         
         .scan-line {
             width: 100%; height: 2px; background: var(--neon-cyan); opacity: 0.3;
@@ -76,6 +76,7 @@
         }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <aside class="sidebar">
@@ -101,14 +102,12 @@
         <div class="ai-header" style="font-size: 28px;">
             <i class="fas fa-atom fa-spin" style="color: var(--neon-purple);"></i> AEGIS INTELLIGENCE CENTER
         </div>
-        <p style="color: var(--text-muted); margin-bottom: 30px; letter-spacing: 1px;">AI-Driven Threat Detection & System Analysis Engine</p>
+        <p style="color: var(--text-muted); margin-bottom: 30px; letter-spacing: 1px;">Hệ thống tương tác và trực quan hóa dữ liệu AI</p>
 
         <div class="ai-grid">
             <div class="ai-terminal" id="terminal">
                 <div class="scan-line"></div>
                 <div class="terminal-line line-success">[SYSTEM] Aegis Neural Core v3.0.5 initialized...</div>
-                <div class="terminal-line line-info">[INFO] Connecting to local database 'server-health'...</div>
-                <div class="terminal-line line-info">[INFO] Analyzing metric patterns from database...</div>
                 <div id="dynamic-logs"></div>
             </div>
 
@@ -121,36 +120,42 @@
                     </div>
                 </div>
 
-                <div class="stat-card">
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Abnormal Activities</div>
-                    <div class="stat-value" style="color: #ef4444;">{{ sprintf('%02d', $threats) }}</div>
-                    <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Total threats in blacklist</p>
-                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--neon-cyan); display: flex; flex-direction: column; gap: 15px;">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Aegis Command Interface</div>
+                    
+                    <form action="{{ route('ai.index') }}" method="GET" style="display: flex; gap: 10px;">
+                        <input type="text" name="ai_command" placeholder="Nhập lệnh... (VD: vẽ biểu đồ cpu)" style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: white; padding: 10px; border-radius: 6px; font-size: 12px;" required>
+                        <button type="submit" class="btn-ai" style="margin:0; width: auto; padding: 0 15px; font-size: 12px;">
+                            <i class="fas fa-paper-plane"></i> Gửi lệnh
+                        </button>
+                    </form>
 
-                <div class="stat-card" style="border-left: 4px solid var(--neon-purple);">
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">AI Recommendation</div>
-                    <p style="font-size: 14px; line-height: 1.6; margin-top: 15px; color: #e2e8f0;">
-                        @if($score < 80)
-                            "Cảnh báo: Chỉ số an toàn đang giảm. Hãy kiểm tra các IP lạ và giải phóng tài nguyên CPU ngay."
-                        @else
-                            "Hệ thống hiện tại đang ở trạng thái tối ưu. Tiếp tục duy trì các quy tắc tường lửa hiện có."
-                        @endif
+                    <p id="ai-status-text" style="font-size: 13px; color: #e2e8f0; margin-top: 5px;">
+                        {{ $aiResponse ?? '> Chờ lệnh từ quản trị viên...' }}
                     </p>
-                    <button class="btn-ai" onclick="alert('Aegis AI: Đang tối ưu hóa các tiến trình hệ thống...')">
-                        <i class="fas fa-bolt"></i> APPLY AI OPTIMIZATION
-                    </button>
+                    
+                    @if(!empty($chartData))
+                        <div style="height: 220px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; border: 1px solid var(--border-color);">
+                            <canvas id="aegisChart"></canvas>
+                        </div>
+                    @else
+                        <div style="height: 150px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); border-radius: 8px;">
+                            <p style="color: var(--text-muted); font-size: 12px; font-style: italic;">Chưa có biểu đồ được yêu cầu.</p>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
     </main>
 
     <script>
+        // --- 1. HIỆU ỨNG GÕ CHỮ CHO TERMINAL ---
         const dynamicLogs = [
-            { type: 'line-success', text: "[OK] Kết nối cơ sở dữ liệu thành công." },
+            { type: 'line-success', text: "[OK] Đã kết nối cơ sở dữ liệu." },
             @foreach($insights as $insight)
             { type: 'line-ai', text: "{!! $insight !!}" },
             @endforeach
-            { type: 'line-info', text: "> Aegis AI tiếp tục giám sát các luồng dữ liệu thời gian thực..." }
+            { type: 'line-info', text: "> Aegis AI đang chờ lệnh tiếp theo..." }
         ];
 
         let index = 0;
@@ -167,11 +172,50 @@
                 terminal.scrollTop = terminal.scrollHeight;
                 
                 index++;
-                setTimeout(printLog, 1500);
+                setTimeout(printLog, 800); // Tốc độ gõ chữ
             }
         }
+        setTimeout(printLog, 500);
 
-        setTimeout(printLog, 1000);
+        // --- 2. LOGIC VẼ BIỂU ĐỒ (NẾU CÓ DỮ LIỆU) ---
+        @if(!empty($chartData))
+            const ctx = document.getElementById('aegisChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {!! json_encode($chartData['labels']) !!},
+                    datasets: [{
+                        label: "{!! $chartData['label'] !!}",
+                        data: {!! json_encode($chartData['values']) !!},
+                        borderColor: "{!! $chartData['color'] !!}",
+                        backgroundColor: "rgba(34, 211, 238, 0.1)", // Đổ nền mờ dưới đường line
+                        borderWidth: 2,
+                        tension: 0.4, // Làm đường cong mượt mà
+                        pointRadius: 2,
+                        pointBackgroundColor: "{!! $chartData['color'] !!}"
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            ticks: { color: "#64748b", font: { size: 10 } },
+                            grid: { color: "#1e293b" }
+                        },
+                        y: { 
+                            ticks: { color: "#64748b", font: { size: 10 } },
+                            grid: { color: "#1e293b" },
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: "#f3f4f6", font: { size: 12, family: "'Segoe UI', sans-serif" } } }
+                    }
+                }
+            });
+        @endif
     </script>
 </body>
 </html>
