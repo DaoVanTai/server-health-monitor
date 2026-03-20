@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Aegis Intelligence Center</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-main: #020617; 
@@ -16,6 +17,12 @@
         }
         body { background: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; min-height: 100vh; overflow-x: hidden; }
         
+        /* --- TÙY CHỈNH THANH CUỘN (SCROLLBAR) ĐẸP MẮT --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
+
         /* --- SIDEBAR --- */
         .sidebar { 
             width: 70px; background-color: #020617; border-right: 1px solid var(--border-color); 
@@ -38,14 +45,13 @@
         /* --- CONTENT --- */
         .main-content { margin-left: 70px; padding: 40px; width: 100%; box-sizing: border-box; }
         .ai-header { color: var(--neon-cyan); font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; text-shadow: 0 0 10px rgba(34, 211, 238, 0.3); }
-        
-        .ai-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-top: 20px; }
+        .ai-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px; margin-top: 20px; align-items: start; }
         
         /* --- TERMINAL --- */
         .ai-terminal { 
             background: #000; border: 1px solid var(--border-color); border-radius: 12px; 
             padding: 25px; font-family: 'Courier New', monospace; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,1); min-height: 450px; position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,1); height: 550px; position: relative;
             overflow-y: auto;
         }
         .ai-terminal::before {
@@ -53,56 +59,68 @@
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             background-size: 100% 2px, 3px 100%; pointer-events: none;
         }
-        
         .terminal-line { margin-bottom: 12px; line-height: 1.5; font-size: 14px; position: relative; z-index: 1; }
         .line-success { color: #22c55e; }
         .line-info { color: var(--text-muted); }
         .line-warning { color: #f59e0b; }
-        .line-danger { color: #ef4444; }
         .line-ai { color: var(--neon-cyan); }
-
-        .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; transition: 0.3s; }
-        .stat-value { font-size: 32px; font-weight: bold; color: var(--neon-purple); margin: 5px 0; }
-        
-        /* --- CHAT UI CSS MỚI --- */
-        .chat-input-wrapper { display: flex; gap: 12px; margin-top: 15px; }
-        .chat-input { 
-            flex: 1; background: rgba(0,0,0,0.6); border: 1px solid var(--border-color); 
-            color: var(--text-main); padding: 15px 20px; border-radius: 12px; 
-            font-size: 14px; transition: all 0.3s ease; 
-        }
-        .chat-input:focus { 
-            outline: none; border-color: var(--neon-cyan); 
-            box-shadow: 0 0 15px rgba(34, 211, 238, 0.2); background: rgba(0,0,0,0.8); 
-        }
-        .btn-send { 
-            background: linear-gradient(45deg, var(--neon-cyan), #0284c7); 
-            color: white; border: none; padding: 0 25px; border-radius: 12px; 
-            cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .btn-send:hover { box-shadow: 0 0 15px var(--neon-cyan); transform: translateY(-2px); }
-        
-        .ai-response-box { 
-            background: rgba(168, 85, 247, 0.1); border-left: 4px solid var(--neon-purple); 
-            padding: 15px 20px; border-radius: 0 12px 12px 0; margin-top: 20px; margin-bottom: 20px; 
-            font-size: 14px; line-height: 1.6; color: #e2e8f0; 
-            display: flex; gap: 15px; align-items: flex-start;
-        }
-        .ai-avatar { 
-            width: 35px; height: 35px; border-radius: 50%; 
-            background: linear-gradient(45deg, var(--neon-purple), var(--neon-cyan)); 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 16px; flex-shrink: 0; box-shadow: 0 0 10px var(--neon-purple); 
-        }
-
-        .scan-line {
-            width: 100%; height: 2px; background: var(--neon-cyan); opacity: 0.3;
-            position: absolute; top: 0; left: 0; animation: scan 4s linear infinite; z-index: 2;
-        }
+        .scan-line { width: 100%; height: 2px; background: var(--neon-cyan); opacity: 0.3; position: absolute; top: 0; left: 0; animation: scan 4s linear infinite; z-index: 2; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        /* --- CHAT INTERFACE MỚI (CÓ LỊCH SỬ) --- */
+        .chat-container { 
+            background: var(--bg-card); border: 1px solid var(--border-color); 
+            border-radius: 12px; display: flex; flex-direction: column; 
+            height: 550px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .chat-header { 
+            padding: 15px 20px; background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border-color); 
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .chat-title { font-size: 13px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        
+        .msg-row { display: flex; width: 100%; }
+        .msg-row.user { justify-content: flex-end; }
+        .msg-row.ai { justify-content: flex-start; align-items: flex-end; gap: 12px; }
+        
+        .msg-bubble { max-width: 80%; padding: 12px 18px; font-size: 14px; line-height: 1.6; }
+        .msg-bubble.user { 
+            background: linear-gradient(135deg, var(--neon-cyan), #0284c7); color: white; 
+            border-radius: 16px 16px 2px 16px; box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2); 
+        }
+        .msg-bubble.ai { 
+            background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); 
+            color: #e2e8f0; border-radius: 16px 16px 16px 2px; 
+        }
+        
+        .ai-avatar { 
+            width: 36px; height: 36px; border-radius: 50%; 
+            background: linear-gradient(45deg, var(--neon-purple), #7e22ce); 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 16px; flex-shrink: 0; box-shadow: 0 0 10px rgba(168, 85, 247, 0.5); color: white;
+        }
+
+        /* --- Ô NHẬP LỆNH & ICON WRAPPER --- */
+        .chat-input-area { padding: 15px 20px; background: rgba(0,0,0,0.3); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; }
+        .chat-input { 
+            flex: 1; background: #020617; border: 1px solid var(--border-color); 
+            color: white; padding: 14px 20px; border-radius: 30px; font-size: 14px; transition: 0.3s; 
+        }
+        .chat-input:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(34, 211, 238, 0.15); }
+        
+        .icon-wrapper-btn { 
+            width: 46px; height: 46px; border-radius: 50%; 
+            background: linear-gradient(45deg, var(--neon-cyan), #0284c7); 
+            display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; border: none; color: white; font-size: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0;
+        }
+        .icon-wrapper-btn:hover { transform: scale(1.1) rotate(10deg); box-shadow: 0 0 20px var(--neon-cyan); }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <aside class="sidebar">
@@ -128,87 +146,129 @@
         <div class="ai-header" style="font-size: 28px;">
             <i class="fas fa-atom fa-spin" style="color: var(--neon-purple);"></i> AEGIS INTELLIGENCE CENTER
         </div>
-        <p style="color: var(--text-muted); margin-bottom: 30px; letter-spacing: 1px;">Hệ thống tương tác và trực quan hóa dữ liệu AI</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <p style="color: var(--text-muted); letter-spacing: 1px; margin: 0;">Mô đun Tương tác NLP & Phân tích trực quan</p>
+            <div style="color: #22c55e; font-size: 14px; font-weight: bold;"><i class="fas fa-shield-check"></i> Health Score: {{ $score }}/100</div>
+        </div>
 
         <div class="ai-grid">
             <div class="ai-terminal" id="terminal">
                 <div class="scan-line"></div>
-                <div class="terminal-line line-success">[SYSTEM] Aegis Neural Core v4.0 initialized...</div>
+                <div class="terminal-line line-success">[SYSTEM] Aegis Neural Core v4.0 (Gemini) active...</div>
                 <div id="dynamic-logs"></div>
             </div>
 
-            <div>
-                <div class="stat-card">
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Security Health Score</div>
-                    <div class="stat-value" style="color: #22c55e;">{{ $score }}<span style="font-size: 14px;">/100</span></div>
-                    <div style="height: 6px; background: #1e293b; border-radius: 3px; margin-top: 10px; overflow: hidden;">
-                        <div style="width: {{ $score }}%; height: 100%; background: linear-gradient(90deg, #22c55e, var(--neon-cyan));"></div>
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-title"><i class="fas fa-comment-alt-code"></i> Aegis Secure Console</div>
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted);">
+                        <div class="status-dot"></div> AI Online
                     </div>
                 </div>
 
-                <div class="stat-card" style="border-left: 4px solid var(--neon-cyan); display: flex; flex-direction: column;">
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">
-                        <i class="fas fa-terminal"></i> Aegis Command Interface
-                    </div>
-                    
-                    <form action="{{ route('ai.index') }}" method="GET" class="chat-input-wrapper">
-                        <input type="text" name="ai_command" class="chat-input" placeholder="Nhắn tin cho Aegis AI... (VD: vẽ biểu đồ CPU)" required autocomplete="off">
-                        <button type="submit" class="btn-send">
-                            <i class="fas fa-paper-plane"></i> Gửi lệnh
-                        </button>
-                    </form>
+                <div class="chat-history" id="chat-history"></div>
 
-                    <div class="ai-response-box">
-                        <div class="ai-avatar"><i class="fas fa-robot" style="color: white;"></i></div>
-                        <div style="flex: 1; padding-top: 5px;">
-                            {{ $aiResponse ?? 'Xin chào! Tôi là Aegis AI. Hệ thống đang hoạt động ổn định. Tôi có thể giúp gì cho bạn?' }}
-                        </div>
-                    </div>
+                <form action="{{ route('ai.index') }}" method="GET" class="chat-input-area">
+                    <input type="text" name="ai_command" class="chat-input" placeholder="Nhập lệnh phân tích (VD: Trích xuất biểu đồ RAM)..." required autocomplete="off">
                     
-                    @if(!empty($chartData))
-                        <div style="height: 250px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);">
-                            <canvas id="aegisChart"></canvas>
-                        </div>
-                    @else
-                        <div style="height: 100px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); border-radius: 12px; background: rgba(0,0,0,0.2);">
-                            <p style="color: var(--text-muted); font-size: 13px; font-style: italic;"><i class="fas fa-chart-line"></i> Chưa có biểu đồ được yêu cầu.</p>
-                        </div>
-                    @endif
-                </div>
+                    <button type="submit" class="icon-wrapper-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
             </div>
         </div>
     </main>
 
     <script>
-        // --- 1. HIỆU ỨNG GÕ CHỮ CHO TERMINAL ---
+        // --- LOGIC TERMINAL ---
         const dynamicLogs = [
-            { type: 'line-success', text: "[OK] Đã kết nối cơ sở dữ liệu." },
+            { type: 'line-success', text: "[OK] Đã xác thực kết nối qua API Key." },
             @foreach($insights as $insight)
             { type: 'line-ai', text: "{!! $insight !!}" },
             @endforeach
-            { type: 'line-info', text: "> Aegis AI đang chờ lệnh tiếp theo..." }
+            { type: 'line-info', text: "> Hệ thống đang phân tích các gói tin nền..." }
         ];
-
         let index = 0;
         const logContainer = document.getElementById('dynamic-logs');
-
         function printLog() {
             if (index < dynamicLogs.length) {
                 const div = document.createElement('div');
                 div.className = `terminal-line ${dynamicLogs[index].type}`;
                 div.innerHTML = dynamicLogs[index].text;
                 logContainer.appendChild(div);
-                
-                const terminal = document.getElementById('terminal');
-                terminal.scrollTop = terminal.scrollHeight;
-                
+                document.getElementById('terminal').scrollTop = 9999;
                 index++;
                 setTimeout(printLog, 800); 
             }
         }
         setTimeout(printLog, 500);
 
-        // --- 2. LOGIC VẼ BIỂU ĐỒ (NẾU CÓ DỮ LIỆU) ---
+        // --- LOGIC LƯU TRỮ VÀ HIỂN THỊ LỊCH SỬ CHAT (SESSION STORAGE) ---
+        const chatHistoryEl = document.getElementById('chat-history');
+        
+        // Khởi tạo lịch sử nếu chưa có
+        let chatHistory = JSON.parse(sessionStorage.getItem('aegis_chat')) || [
+            { sender: 'ai', text: 'Xin chào! Tôi là trí tuệ nhân tạo Aegis. Tôi đã sẵn sàng phân tích dữ liệu Server của bạn.' }
+        ];
+
+        // Nếu vừa gửi lệnh form, lấy dữ liệu từ Server đẩy vào mảng
+        @if(request()->has('ai_command'))
+            const userCmd = "{!! addslashes(request()->get('ai_command')) !!}";
+            const aiResp = "{!! addslashes($aiResponse ?? '') !!}";
+            
+            // Chống nhân bản (duplicate) khi nhấn F5
+            const lastMsg = chatHistory[chatHistory.length - 1];
+            if (!lastMsg || lastMsg.text !== aiResp) {
+                chatHistory.push({ sender: 'user', text: userCmd });
+                chatHistory.push({ sender: 'ai', text: aiResp });
+                
+                // Giữ lịch sử không quá dài (Tối đa 20 tin nhắn)
+                if(chatHistory.length > 20) chatHistory = chatHistory.slice(chatHistory.length - 20);
+                sessionStorage.setItem('aegis_chat', JSON.stringify(chatHistory));
+            }
+        @endif
+
+        // Hàm Render giao diện chat
+        function renderChat() {
+            chatHistoryEl.innerHTML = '';
+            chatHistory.forEach(msg => {
+                const row = document.createElement('div');
+                row.className = `msg-row ${msg.sender}`;
+                
+                if (msg.sender === 'ai') {
+                    row.innerHTML = `
+                        <div class="ai-avatar"><i class="fas fa-robot"></i></div>
+                        <div class="msg-bubble ai">${msg.text}</div>
+                    `;
+                } else {
+                    row.innerHTML = `<div class="msg-bubble user">${msg.text}</div>`;
+                }
+                chatHistoryEl.appendChild(row);
+            });
+
+            // Nếu có dữ liệu Biểu đồ (từ Controller gửi sang) thì vẽ tiếp vào tin nhắn cuối
+            @if(!empty($chartData))
+                const chartRow = document.createElement('div');
+                chartRow.className = 'msg-row ai';
+                chartRow.innerHTML = `
+                    <div class="ai-avatar" style="visibility: hidden;"></div>
+                    <div class="msg-bubble ai" style="width: 100%; max-width: 85%; padding: 15px;">
+                        <div style="height: 220px; width: 100%;">
+                            <canvas id="aegisChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                chatHistoryEl.appendChild(chartRow);
+            @endif
+
+            // Tự động cuộn xuống cuối cùng
+            chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+        }
+
+        // Gọi hàm hiển thị
+        renderChat();
+
+        // --- LOGIC VẼ BIỂU ĐỒ VÀO KHUNG CHAT ---
         @if(!empty($chartData))
             const ctx = document.getElementById('aegisChart').getContext('2d');
             new Chart(ctx, {
@@ -219,10 +279,10 @@
                         label: "{!! $chartData['label'] !!}",
                         data: {!! json_encode($chartData['values']) !!},
                         borderColor: "{!! $chartData['color'] !!}",
-                        backgroundColor: "rgba(34, 211, 238, 0.15)", // Nền đậm hơn chút cho đẹp
+                        backgroundColor: "rgba(34, 211, 238, 0.15)",
                         borderWidth: 2,
                         tension: 0.4, 
-                        pointRadius: 3, // Điểm tròn to hơn
+                        pointRadius: 3, 
                         pointBackgroundColor: "{!! $chartData['color'] !!}"
                     }]
                 },
@@ -230,20 +290,10 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: { 
-                            ticks: { color: "#94a3b8", font: { size: 11 } },
-                            grid: { color: "#1e293b", drawBorder: false }
-                        },
-                        y: { 
-                            ticks: { color: "#94a3b8", font: { size: 11 } },
-                            grid: { color: "#1e293b", drawBorder: false },
-                            beginAtZero: true,
-                            max: 100
-                        }
+                        x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { color: "#1e293b", drawBorder: false } },
+                        y: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { color: "#1e293b", drawBorder: false }, beginAtZero: true, max: 100 }
                     },
-                    plugins: {
-                        legend: { labels: { color: "#f3f4f6", font: { size: 13, family: "'Segoe UI', sans-serif" } } }
-                    }
+                    plugins: { legend: { labels: { color: "#f3f4f6", font: { size: 13 } } } }
                 }
             });
         @endif
