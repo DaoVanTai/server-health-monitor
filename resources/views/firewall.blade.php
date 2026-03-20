@@ -156,9 +156,10 @@
                 fetch(`https://get.geojs.io/v1/ip/geo/${ip}.json`)
                     .then(response => response.json())
                     .then(data => {
-                        if (data && data.countryCode) {
+                        // FIX LỖI Ở ĐÂY: Sửa thành country_code (có dấu gạch dưới)
+                        if (data && data.country_code) {
                             // Link lá cờ từ flagcdn
-                            const flagUrl = `https://flagcdn.com/20x15/${data.countryCode.toLowerCase()}.png`;
+                            const flagUrl = `https://flagcdn.com/20x15/${data.country_code.toLowerCase()}.png`;
                             
                             // Gắn cờ và tên quốc gia
                             flagSpan.innerHTML = `
