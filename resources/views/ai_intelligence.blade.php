@@ -169,7 +169,7 @@
                 <div class="chat-history" id="chat-history"></div>
 
                 <form action="{{ route('ai.index') }}" method="GET" class="chat-input-area">
-                    <input type="text" name="ai_command" class="chat-input" placeholder="Nhập lệnh phân tích (VD: Trích xuất biểu đồ RAM)..." required autocomplete="off">
+                    <input type="text" name="ai_command" class="chat-input" placeholder="Nhập lệnh phân tích ..." required autocomplete="off">
                     
                     <button type="submit" class="icon-wrapper-btn">
                         <i class="fas fa-paper-plane"></i>
@@ -297,6 +297,43 @@
                 }
             });
         @endif
+    </script>
+    <script>
+        // --- HIỆU ỨNG CHỐNG LAG (UX OPTIMIZATION) ---
+        document.querySelector('.chat-input-area').addEventListener('submit', function(e) {
+            const btn = this.querySelector('.icon-wrapper-btn');
+            const input = this.querySelector('.chat-input');
+            const userText = input.value.trim();
+
+            if(userText !== "") {
+                // 1. Đổi nút Gửi thành trạng thái Loading xoay xoay
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                btn.style.opacity = '0.7';
+                btn.style.pointerEvents = 'none';
+
+                // 2. Tạm thời khóa ô nhập liệu
+                input.readOnly = true;
+
+                // 3. In ngay lập tức câu hỏi của bạn lên khung chat
+                const chatHistoryEl = document.getElementById('chat-history');
+                chatHistoryEl.innerHTML += `
+                    <div class="msg-row user">
+                        <div class="msg-bubble user">${userText}</div>
+                    </div>`;
+
+                // 4. In biểu tượng AI đang suy nghĩ
+                chatHistoryEl.innerHTML += `
+                    <div class="msg-row ai" id="ai-thinking-indicator">
+                        <div class="ai-avatar" style="background: #475569; box-shadow: none;"><i class="fas fa-robot text-gray-400"></i></div>
+                        <div class="msg-bubble ai" style="color: var(--neon-cyan); font-style: italic;">
+                            <i class="fas fa-satellite-dish fa-fade"></i> Đang phân tích dữ liệu qua Neural Core...
+                        </div>
+                    </div>`;
+
+                // 5. Cuộn xuống cuối cùng để xem dòng chữ đang suy nghĩ
+                chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+            }
+        });
     </script>
 </body>
 </html>
