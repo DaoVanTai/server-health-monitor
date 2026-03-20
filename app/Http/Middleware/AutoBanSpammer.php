@@ -6,12 +6,19 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log; // Nạp thêm thư viện Log
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth; // 1. BẮT BUỘC NẠP THÊM THƯ VIỆN Auth
 
 class AutoBanSpammer
 {
     public function handle(Request $request, Closure $next)
     {
+        // 2. [TÍNH NĂNG MỚI]: KIM BÀI MIỄN TỬ (WHITELIST)
+        // Nếu người dùng đã đăng nhập hợp lệ vào hệ thống -> Cho qua ngay lập tức, bỏ qua mọi rào cản
+        if (Auth::check()) {
+            return $next($request);
+        }
+
         $ip = $request->ip();
 
         // 1. Kiểm tra xem IP này đã bị chặn trong Firewall chưa
@@ -20,7 +27,7 @@ class AutoBanSpammer
             abort(403, 'Aegis Firewall: IP của bạn đã bị cấm truy cập do hành vi đáng ngờ.');
         }
 
-        // 2. Đếm số lượng request của IP này trong 1 phút (Chống Spam)
+        // 2. Đếm số lượng request của IP này trong 1 phút (Chống Spam cho khách vãng lai)
         // Nếu là IP nội bộ (localhost) thì bỏ qua
         if ($ip !== '127.0.0.1' && !str_starts_with($ip, '192.168.')) {
             $cacheKey = 'spam_count_' . $ip;
