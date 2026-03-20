@@ -41,6 +41,7 @@
         
         .ai-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-top: 20px; }
         
+        /* --- TERMINAL --- */
         .ai-terminal { 
             background: #000; border: 1px solid var(--border-color); border-radius: 12px; 
             padding: 25px; font-family: 'Courier New', monospace; 
@@ -63,13 +64,38 @@
         .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; transition: 0.3s; }
         .stat-value { font-size: 32px; font-weight: bold; color: var(--neon-purple); margin: 5px 0; }
         
-        .btn-ai { 
-            background: linear-gradient(45deg, var(--neon-cyan), #0284c7); 
-            color: white; border: none; padding: 12px; border-radius: 8px; 
-            cursor: pointer; font-weight: bold; transition: 0.3s;
+        /* --- CHAT UI CSS MỚI --- */
+        .chat-input-wrapper { display: flex; gap: 12px; margin-top: 15px; }
+        .chat-input { 
+            flex: 1; background: rgba(0,0,0,0.6); border: 1px solid var(--border-color); 
+            color: var(--text-main); padding: 15px 20px; border-radius: 12px; 
+            font-size: 14px; transition: all 0.3s ease; 
         }
-        .btn-ai:hover { box-shadow: 0 0 15px var(--neon-cyan); filter: brightness(1.1); }
+        .chat-input:focus { 
+            outline: none; border-color: var(--neon-cyan); 
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.2); background: rgba(0,0,0,0.8); 
+        }
+        .btn-send { 
+            background: linear-gradient(45deg, var(--neon-cyan), #0284c7); 
+            color: white; border: none; padding: 0 25px; border-radius: 12px; 
+            cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-send:hover { box-shadow: 0 0 15px var(--neon-cyan); transform: translateY(-2px); }
         
+        .ai-response-box { 
+            background: rgba(168, 85, 247, 0.1); border-left: 4px solid var(--neon-purple); 
+            padding: 15px 20px; border-radius: 0 12px 12px 0; margin-top: 20px; margin-bottom: 20px; 
+            font-size: 14px; line-height: 1.6; color: #e2e8f0; 
+            display: flex; gap: 15px; align-items: flex-start;
+        }
+        .ai-avatar { 
+            width: 35px; height: 35px; border-radius: 50%; 
+            background: linear-gradient(45deg, var(--neon-purple), var(--neon-cyan)); 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 16px; flex-shrink: 0; box-shadow: 0 0 10px var(--neon-purple); 
+        }
+
         .scan-line {
             width: 100%; height: 2px; background: var(--neon-cyan); opacity: 0.3;
             position: absolute; top: 0; left: 0; animation: scan 4s linear infinite; z-index: 2;
@@ -107,7 +133,7 @@
         <div class="ai-grid">
             <div class="ai-terminal" id="terminal">
                 <div class="scan-line"></div>
-                <div class="terminal-line line-success">[SYSTEM] Aegis Neural Core v3.0.5 initialized...</div>
+                <div class="terminal-line line-success">[SYSTEM] Aegis Neural Core v4.0 initialized...</div>
                 <div id="dynamic-logs"></div>
             </div>
 
@@ -120,27 +146,32 @@
                     </div>
                 </div>
 
-                <div class="stat-card" style="border-left: 4px solid var(--neon-cyan); display: flex; flex-direction: column; gap: 15px;">
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Aegis Command Interface</div>
+                <div class="stat-card" style="border-left: 4px solid var(--neon-cyan); display: flex; flex-direction: column;">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">
+                        <i class="fas fa-terminal"></i> Aegis Command Interface
+                    </div>
                     
-                    <form action="{{ route('ai.index') }}" method="GET" style="display: flex; gap: 10px;">
-                        <input type="text" name="ai_command" placeholder="Nhập lệnh... (VD: vẽ biểu đồ cpu)" style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: white; padding: 10px; border-radius: 6px; font-size: 12px;" required>
-                        <button type="submit" class="btn-ai" style="margin:0; width: auto; padding: 0 15px; font-size: 12px;">
+                    <form action="{{ route('ai.index') }}" method="GET" class="chat-input-wrapper">
+                        <input type="text" name="ai_command" class="chat-input" placeholder="Nhắn tin cho Aegis AI... (VD: vẽ biểu đồ CPU)" required autocomplete="off">
+                        <button type="submit" class="btn-send">
                             <i class="fas fa-paper-plane"></i> Gửi lệnh
                         </button>
                     </form>
 
-                    <p id="ai-status-text" style="font-size: 13px; color: #e2e8f0; margin-top: 5px;">
-                        {{ $aiResponse ?? '> Chờ lệnh từ quản trị viên...' }}
-                    </p>
+                    <div class="ai-response-box">
+                        <div class="ai-avatar"><i class="fas fa-robot" style="color: white;"></i></div>
+                        <div style="flex: 1; padding-top: 5px;">
+                            {{ $aiResponse ?? 'Xin chào! Tôi là Aegis AI. Hệ thống đang hoạt động ổn định. Tôi có thể giúp gì cho bạn?' }}
+                        </div>
+                    </div>
                     
                     @if(!empty($chartData))
-                        <div style="height: 220px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; border: 1px solid var(--border-color);">
+                        <div style="height: 250px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color);">
                             <canvas id="aegisChart"></canvas>
                         </div>
                     @else
-                        <div style="height: 150px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); border-radius: 8px;">
-                            <p style="color: var(--text-muted); font-size: 12px; font-style: italic;">Chưa có biểu đồ được yêu cầu.</p>
+                        <div style="height: 100px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); border-radius: 12px; background: rgba(0,0,0,0.2);">
+                            <p style="color: var(--text-muted); font-size: 13px; font-style: italic;"><i class="fas fa-chart-line"></i> Chưa có biểu đồ được yêu cầu.</p>
                         </div>
                     @endif
                 </div>
@@ -172,7 +203,7 @@
                 terminal.scrollTop = terminal.scrollHeight;
                 
                 index++;
-                setTimeout(printLog, 800); // Tốc độ gõ chữ
+                setTimeout(printLog, 800); 
             }
         }
         setTimeout(printLog, 500);
@@ -188,10 +219,10 @@
                         label: "{!! $chartData['label'] !!}",
                         data: {!! json_encode($chartData['values']) !!},
                         borderColor: "{!! $chartData['color'] !!}",
-                        backgroundColor: "rgba(34, 211, 238, 0.1)", // Đổ nền mờ dưới đường line
+                        backgroundColor: "rgba(34, 211, 238, 0.15)", // Nền đậm hơn chút cho đẹp
                         borderWidth: 2,
-                        tension: 0.4, // Làm đường cong mượt mà
-                        pointRadius: 2,
+                        tension: 0.4, 
+                        pointRadius: 3, // Điểm tròn to hơn
                         pointBackgroundColor: "{!! $chartData['color'] !!}"
                     }]
                 },
@@ -200,18 +231,18 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: { 
-                            ticks: { color: "#64748b", font: { size: 10 } },
-                            grid: { color: "#1e293b" }
+                            ticks: { color: "#94a3b8", font: { size: 11 } },
+                            grid: { color: "#1e293b", drawBorder: false }
                         },
                         y: { 
-                            ticks: { color: "#64748b", font: { size: 10 } },
-                            grid: { color: "#1e293b" },
+                            ticks: { color: "#94a3b8", font: { size: 11 } },
+                            grid: { color: "#1e293b", drawBorder: false },
                             beginAtZero: true,
                             max: 100
                         }
                     },
                     plugins: {
-                        legend: { labels: { color: "#f3f4f6", font: { size: 12, family: "'Segoe UI', sans-serif" } } }
+                        legend: { labels: { color: "#f3f4f6", font: { size: 13, family: "'Segoe UI', sans-serif" } } }
                     }
                 }
             });
