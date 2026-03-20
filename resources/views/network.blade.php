@@ -60,7 +60,7 @@
         
         .net-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
         .net-table th { text-align: left; color: var(--text-muted); padding-bottom: 12px; border-bottom: 1px solid var(--border-color); text-transform: uppercase; font-size: 10px; }
-        .net-table td { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .net-table td { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
 
         .row-warning td { background: rgba(239, 68, 68, 0.05); border-left: 2px solid var(--neon-red); color: var(--neon-red); animation: pulse-red 2s infinite; }
         @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
@@ -73,6 +73,10 @@
         /* Custom Popup cho Map */
         .leaflet-popup-content-wrapper { background: var(--bg-card); color: white; border: 1px solid var(--border-color); }
         .leaflet-popup-tip { background: var(--bg-card); }
+        
+        /* Nút Chặn nhanh */
+        .btn-quick-block { background: var(--neon-red); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; opacity: 0.8;}
+        .btn-quick-block:hover { opacity: 1; box-shadow: 0 0 8px var(--neon-red); }
     </style>
 </head>
 <body>
@@ -91,17 +95,17 @@
             <span>Network Center</span>
         </a>
         <a href="{{ route('firewall.index') }}" class="sidebar-item {{ Request::is('firewall*') ? 'active' : '' }}">
-    <div class="sidebar-icon-wrapper">
-        <i class="fas fa-shield-alt"></i>
-    </div>
-    <span>Security</span>
-</a>
-<a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
-    <div class="sidebar-icon-wrapper">
-        <i class="fas fa-brain"></i>
-    </div>
-    <span>AI Insight</span>
-</a>
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <span>Security</span>
+        </a>
+        <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-brain"></i>
+            </div>
+            <span>AI Insight</span>
+        </a>
     </aside>
 
     <main class="main-content">
@@ -165,10 +169,10 @@
                 <div style="overflow-y: auto; max-height: 350px;">
                     <table class="net-table">
                         <thead>
-                            <tr><th>PROTO</th><th>CLIENT IP</th><th>PORT</th><th>PROCESS</th><th>STATUS</th></tr>
+                            <tr><th>PROTO</th><th>CLIENT IP</th><th>PORT</th><th>PROCESS</th><th>STATUS</th><th>ACTION</th></tr>
                         </thead>
                         <tbody id="connection-list">
-                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Initializing security scan...</td></tr>
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Initializing security scan...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -201,13 +205,14 @@
             }
         });
 
-        // --- 2. KHỞI TẠO BẢN ĐỒ ---
-        const map = L.map('map').setView([20.0, 0.0], 2); // Toàn cầu
+        // --- 2. KHỞI TẠO BẢN ĐỒ VÀ BỘ NHỚ ĐỆM GEO-IP ---
+        const map = L.map('map').setView([20.0, 0.0], 2); 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CartoDB'
         }).addTo(map);
 
-        let markers = {}; // Lưu trữ các điểm để không bị vẽ đè
+        let markers = {}; 
+        let geoCache = {}; // Bộ nhớ đệm lưu cờ để không bị gọi API spam mỗi 5 giây
 
         // --- 3. HÀM CẬP NHẬT DỮ LIỆU ---
         function updateAllData() {
@@ -236,18 +241,56 @@
                     data.forEach(conn => {
                         const isSSH = conn.local_port == '22';
                         const rowClass = isSSH ? 'row-warning' : '';
+                        const ip = conn.remote_ip;
+                        const safeId = ip.replace(/\./g, '-'); // Thay dấu . thành - để làm ID
+
+                        // Xử lý cờ Geo-IP qua Cache
+                        let flagHtml = `<span id="flag-${safeId}"><i class="fas fa-spinner fa-spin" style="font-size: 10px; color: var(--text-muted); margin-left:5px;"></i></span>`;
                         
+                        if (!geoCache[ip]) {
+                            if (ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip === '0.0.0.0') {
+                                geoCache[ip] = '<span style="color: #64748b; font-size: 10px; margin-left: 5px;">Local</span>';
+                            } else {
+                                geoCache[ip] = 'loading';
+                                fetch(`https://get.geojs.io/v1/ip/geo/${ip}.json`)
+                                    .then(r => r.json())
+                                    .then(d => {
+                                        if(d && d.country_code) {
+                                            geoCache[ip] = `<img src="https://flagcdn.com/16x12/${d.country_code.toLowerCase()}.png" style="margin-left:5px; vertical-align: middle; border-radius: 2px;">`;
+                                        } else {
+                                            geoCache[ip] = '';
+                                        }
+                                        let el = document.getElementById(`flag-${safeId}`);
+                                        if(el) el.innerHTML = geoCache[ip];
+                                    }).catch(() => { geoCache[ip] = ''; });
+                            }
+                        } else if (geoCache[ip] !== 'loading') {
+                            flagHtml = geoCache[ip];
+                        }
+
+                        // Form nút khóa nhanh (Gửi POST sang Firewall)
+                        const blockForm = `
+                            <form action="{{ route('firewall.block') }}" method="POST" style="margin:0;" onsubmit="return confirm('Khóa IP ${ip} ngay lập tức?');">
+                                @csrf
+                                <input type="hidden" name="ip_address" value="${ip}">
+                                <input type="hidden" name="reason" value="Khóa nhanh từ Network Center">
+                                <button type="submit" class="btn-quick-block" title="Block IP">⚡ BLOCK</button>
+                            </form>
+                        `;
+                        
+                        // Vẽ từng dòng HTML
                         list.innerHTML += `
                             <tr class="${rowClass}">
                                 <td><span style="opacity: 0.5;">${conn.protocol}</span></td>
-                                <td><span class="text-neon-blue">${conn.remote_ip}</span></td>
+                                <td><span class="text-neon-blue">${ip}</span> ${flagHtml}</td>
                                 <td><span style="color: var(--neon-purple)">:${conn.local_port}</span></td>
                                 <td>${isSSH ? '<span class="badge-ssh">sshd</span>' : conn.process}</td>
                                 <td><span class="badge-live">ESTAB</span></td>
+                                <td>${(ip === '127.0.0.1' || ip.startsWith('192.168.')) ? '' : blockForm}</td>
                             </tr>
                         `;
 
-                        // Vẽ lên bản đồ nếu có dữ liệu tọa độ (Cần Controller trả về lat, lon)
+                        // Vẽ lên bản đồ
                         if (conn.location && conn.location.lat && !markers[conn.remote_ip]) {
                             const marker = L.circleMarker([conn.location.lat, conn.location.lon], {
                                 radius: 6,
