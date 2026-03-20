@@ -8,7 +8,7 @@ use App\Http\Controllers\MetricController;
 use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\FirewallController;
 use App\Http\Controllers\AegisController;
-//use App\Http\Controllers\SecurityController;
+use App\Http\Controllers\SecurityController;
 
 // ==========================================
 // 1. ĐIỀU HƯỚNG CỔNG CHÍNH
