@@ -75,44 +75,57 @@ class AegisController extends Controller
                 {\"intent\": \"tên_intent_ở_đây\", \"reply\": \"câu_trả_lời_của_bạn_ở_đây\"}";
 
                 try {
-                    // Gọi sang Google Gemini
-                    $response = Http::post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey, [
-    'contents' => [
-        ['parts' => [['text' => $prompt]]]
-    ]
-]);
+                    // Gắn thêm Header để Google hiểu định dạng
+                    $response = Http::withHeaders([
+                        'Content-Type' => 'application/json'
+                    ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey, [
+                        'contents' => [
+                            ['parts' => [['text' => $prompt]]]
+                        ]
+                    ]);
 
-                    $resultText = $response->json('candidates.0.content.parts.0.text');
-                    
-                    // Dọn dẹp chuỗi trả về để đảm bảo là JSON hợp lệ
-                    $cleanJson = str_replace(['```json', '```', "\n"], '', $resultText);
-                    $aiResult = json_decode(trim($cleanJson));
-
-                    if ($aiResult && isset($aiResult->intent)) {
-                        $aiResponse = "> Aegis: " . $aiResult->reply;
+                    // NẾU GOOGLE BÁO LỖI (Ví dụ: Sai API, Hết hạn mức...)
+                    if ($response->failed()) {
+                        $aiResponse = "> Aegis Offline: Google từ chối kết nối. Lỗi chi tiết: " . $response->body();
+                    } 
+                    // NẾU THÀNH CÔNG
+                    else {
+                        $resultText = $response->json('candidates.0.content.parts.0.text');
                         
-                        // Kích hoạt vẽ biểu đồ dựa theo "suy nghĩ" của AI
-                        if ($aiResult->intent === 'draw_cpu') {
-                            $chartData = [
-                                'label' => 'Mức sử dụng CPU (%)',
-                                'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
-                                'values' => $historyData->pluck('cpu_percent')->toArray(),
-                                'color' => '#22d3ee' 
-                            ];
-                        } elseif ($aiResult->intent === 'draw_ram') {
-                            $chartData = [
-                                'label' => 'Mức sử dụng RAM (%)',
-                                'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
-                                'values' => $historyData->pluck('ram_percent')->toArray(),
-                                'color' => '#a855f7' 
-                            ];
+                        // Kiểm tra nếu Google không trả về chữ
+                        if (empty($resultText)) {
+                            $aiResponse = "> Aegis: Dữ liệu trả về bị trống. Toàn bộ phản hồi: " . $response->body();
+                        } else {
+                            // Dọn dẹp JSON
+                            $cleanJson = str_replace(['```json', '```', "\n", "\r"], '', $resultText);
+                            $aiResult = json_decode(trim($cleanJson));
+
+                            if ($aiResult && isset($aiResult->intent)) {
+                                $aiResponse = "> Aegis: " . $aiResult->reply;
+                                
+                                if ($aiResult->intent === 'draw_cpu') {
+                                    $chartData = [
+                                        'label' => 'Mức sử dụng CPU (%)',
+                                        'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
+                                        'values' => $historyData->pluck('cpu_percent')->toArray(),
+                                        'color' => '#22d3ee' 
+                                    ];
+                                } elseif ($aiResult->intent === 'draw_ram') {
+                                    $chartData = [
+                                        'label' => 'Mức sử dụng RAM (%)',
+                                        'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
+                                        'values' => $historyData->pluck('ram_percent')->toArray(),
+                                        'color' => '#a855f7' 
+                                    ];
+                                }
+                            } else {
+                                $aiResponse = "> Aegis Lỗi Format: AI không trả về đúng chuẩn JSON. Phản hồi của AI: " . $resultText;
+                            }
                         }
-                    } else {
-                        $aiResponse = "> Aegis: Lỗi giải mã ý định. Phản hồi thô: " . $resultText;
                     }
 
                 } catch (\Exception $e) {
-                    $aiResponse = "> Aegis Offline: Lỗi kết nối. CHI TIẾT LỖI: " . $e->getMessage();
+                    $aiResponse = "> Aegis Offline: Lỗi mạng nội bộ. Chi tiết: " . $e->getMessage();
                 }
             }
         }
