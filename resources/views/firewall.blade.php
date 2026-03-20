@@ -77,11 +77,11 @@
             <span>Security</span>
         </a>
         <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
-    <div class="sidebar-icon-wrapper">
-        <i class="fas fa-brain"></i>
-    </div>
-    <span>AI Insight</span>
-</a>
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-brain"></i>
+            </div>
+            <span>AI Insight</span>
+        </a>
     </aside>
 
     <main class="main-content">
@@ -101,7 +101,7 @@
             <table class="ip-table">
                 <thead>
                     <tr>
-                        <th>IP ADDRESS</th>
+                        <th>IP ADDRESS (Geo-Location)</th>
                         <th>REASON</th>
                         <th>STATUS</th>
                         <th>ACTION</th>
@@ -110,7 +110,12 @@
                 <tbody>
                     @forelse($blacklists as $item)
                     <tr>
-                        <td style="color: var(--neon-red); font-weight: bold;">{{ $item->ip_address }}</td>
+                        <td style="color: var(--neon-red); font-weight: bold;">
+                            <span class="ip-address">{{ $item->ip_address }}</span>
+                            <span class="geo-flag" style="margin-left: 10px; font-size: 13px; color: var(--text-muted); font-weight: normal;">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </td>
                         <td>{{ $item->reason }}</td>
                         <td><span style="color: #ef4444;"><i class="fas fa-circle" style="font-size: 8px;"></i> Blocked</span></td>
                         <td>
@@ -131,5 +136,44 @@
             </table>
         </div>
     </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Lấy tất cả các thẻ có class ip-address
+            const ipCells = document.querySelectorAll('.ip-address');
+
+            ipCells.forEach(cell => {
+                const ip = cell.innerText.trim();
+                const flagSpan = cell.nextElementSibling; // Lấy thẻ geo-flag kế bên
+
+                // Bỏ qua nếu là IP nội bộ
+                if (ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+                    flagSpan.innerHTML = '<i class="fas fa-network-wired" style="color: var(--text-muted);"></i> <span style="color: var(--text-muted);">Localhost</span>';
+                    return;
+                }
+
+                // Gọi API để lấy thông tin quốc gia
+                fetch(`https://get.geojs.io/v1/ip/geo/${ip}.json`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.countryCode) {
+                            // Link lá cờ từ flagcdn
+                            const flagUrl = `https://flagcdn.com/20x15/${data.countryCode.toLowerCase()}.png`;
+                            
+                            // Gắn cờ và tên quốc gia
+                            flagSpan.innerHTML = `
+                                <img src="${flagUrl}" alt="${data.country}" style="vertical-align: text-bottom; border-radius: 2px; margin-right: 5px; box-shadow: 0 0 3px rgba(0,0,0,0.5);">
+                                <span style="color: #cbd5e1;">${data.country}</span>
+                            `;
+                        } else {
+                            flagSpan.innerHTML = '<i class="fas fa-question-circle"></i> Unknown';
+                        }
+                    })
+                    .catch(error => {
+                        flagSpan.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Lỗi định vị';
+                    });
+            });
+        });
+    </script>
 </body>
 </html>
