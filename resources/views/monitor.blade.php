@@ -200,22 +200,7 @@
                 </div>
             </div>
 
-            <div class="services-section">
-                <div style="font-weight:bold; color: var(--neon-blue); margin-bottom: 15px;">
-                    <i class="fas fa-cogs"></i> SERVICE CONTROL
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 15px; flex: 1;">
-                    
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--neon-blue); display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: bold; font-size: 13px;">Web (Nginx)</span>
-                            <span id="status-nginx" style="font-size: 11px;"><i class="fas fa-spinner fa-spin"></i></span>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="sendServiceCommand('nginx', 'restart')" style="flex: 1; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-sync"></i> Restart</button>
-                            <button onclick="sendServiceCommand('nginx', 'stop')" style="flex: 1; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--neon-red); color: var(--neon-red); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-stop"></i> Stop</button>
-                        </div>
-                    </div>
+            
 
                     <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--neon-purple); display: flex; flex-direction: column; gap: 10px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
