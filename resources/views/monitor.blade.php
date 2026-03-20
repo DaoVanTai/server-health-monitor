@@ -200,18 +200,6 @@
                 </div>
             </div>
 
-            
-
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--neon-purple); display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: bold; font-size: 13px;">DB (MySQL)</span>
-                            <span id="status-mysqld" style="font-size: 11px;"><i class="fas fa-spinner fa-spin"></i></span>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="sendServiceCommand('mysqld', 'restart')" style="flex: 1; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--neon-purple); color: var(--neon-purple); padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;"><i class="fas fa-sync"></i> Restart</button>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </div>
