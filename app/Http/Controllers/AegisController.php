@@ -70,8 +70,9 @@ class AegisController extends Controller
                 {\"intent\": \"tên_intent\", \"reply\": \"câu_trả_lời_của_bạn\"}";
 
                 // SỬA QUAN TRỌNG 2: Dùng model `gemini-1.5-flash-latest` để luôn lấy bản chuẩn nhất
-                $googleUrl = "[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=)" . $apiKey;                
-                
+                // Mẹo ngắt chuỗi để chống lỗi copy dính link ẩn
+                    $domain = "https://" . "generativelanguage.googleapis.com";
+                    $googleUrl = $domain . "/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" . $apiKey;                
                 try {
                     $response = Http::timeout(20)->withHeaders([
                         'Content-Type' => 'application/json'
