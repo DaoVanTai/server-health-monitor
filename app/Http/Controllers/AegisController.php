@@ -25,7 +25,7 @@ class AegisController extends Controller
         $isSpiking = $avgCpu > 80 ? true : false;
 
         $insights = [
-            "> [SYSTEM] Aegis Neural Core v4.0 (Gemini 1.0 Pro) active...",
+            "> [SYSTEM] Aegis Neural Core v4.0 (Gemini 1.5 Flash) active...",
             "> [INFO] Connecting to local database 'server-health'..."
         ];
 
@@ -69,9 +69,9 @@ class AegisController extends Controller
                 CHỈ trả về ĐÚNG MỘT khối JSON thuần túy (không markdown ```json):
                 {\"intent\": \"tên_intent\", \"reply\": \"câu_trả_lời_của_bạn\"}";
 
-                // SỬA CHUẨN: Dùng gemini-1.0-pro để không bị lỗi Not Found
+                // SỬA CHUẨN: Dùng gemini-1.5-flash để không bị lỗi Not Found
                 $domain = "https://" . "generativelanguage.googleapis.com";
-                $googleUrl = $domain . "/v1beta/models/gemini-1.0-pro:generateContent?key=" . $apiKey;                
+                $googleUrl = $domain . "/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;                
                 
                 try {
                     $response = Http::timeout(20)->withHeaders([
@@ -93,7 +93,7 @@ class AegisController extends Controller
                             $aiResult = json_decode($cleanJson);
 
                             if ($aiResult && isset($aiResult->reply)) {
-                                $aiResponse = $aiResult->reply;
+                                $aiResponse = "> Aegis: " . $aiResult->reply;
                                 
                                 if ($aiResult->intent === 'draw_cpu') {
                                     $chartData = [
