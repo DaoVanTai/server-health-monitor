@@ -56,22 +56,23 @@ class AutoBanSpammer
                 ]);
 
                 // PHONG ẤN TẬN GỐC TRÊN HỆ ĐIỀU HÀNH TỰ ĐỘNG (OS-LEVEL)
-            //    if (PHP_OS_FAMILY === 'Linux') {
-            //        try {
+                if (PHP_OS_FAMILY === 'Linux') {
+                    try {
                         // Khóa toàn bộ các cổng từ IP này
-            //            $command = "sudo ufw deny from " . escapeshellarg($ip);
-            //            shell_exec($command);
-            //        } catch (\Exception $e) {
-            //            Log::error("Không thể thực thi lệnh Firewall OS (Auto-ban): " . $e->getMessage());
+                        $command = "sudo ufw deny from " . escapeshellarg($ip);
+                        shell_exec($command);
+                    } catch (\Exception $e) {
+                        Log::error("Không thể thực thi lệnh Firewall OS (Auto-ban): " . $e->getMessage());
                     }
                 }
 
                 // Xóa biến đếm để giải phóng bộ nhớ
-                // Cache::forget($cacheKey);
+                Cache::forget($cacheKey);
 
-                // abort(403, 'Aegis Firewall: Đã phát hiện tấn công DDoS. IP của bạn đã bị khóa trên TOÀN BỘ các cổng hệ thống!');
+                //abort(403, 'Aegis Firewall: Đã phát hiện tấn công DDoS. IP của bạn đã bị khóa trên TOÀN BỘ các cổng hệ thống!');
             }
         }
 
-        // return $next($request);
-    
+        return $next($request);
+    }
+}
