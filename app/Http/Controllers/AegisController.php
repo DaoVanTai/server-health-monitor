@@ -70,8 +70,7 @@ class AegisController extends Controller
                 {\"intent\": \"tên_intent\", \"reply\": \"câu_trả_lời_của_bạn\"}";
 
                 // Gọi trực tiếp đến Google, dùng đúng model, bỏ Proxy lỗi
-                $googleUrl = "[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=)" . $apiKey;
-
+                    $googleUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
                 try {
                     $response = Http::timeout(15)->withHeaders([
                         'Content-Type' => 'application/json'
