@@ -73,5 +73,5 @@ class AutoBanSpammer
             }
         }
 
-        return $next($request);
+        // return $next($request);
     
