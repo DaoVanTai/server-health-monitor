@@ -11,9 +11,8 @@ class AegisController extends Controller
     public function index(Request $request) 
     {
         // =========================================================
-        // PHẦN 1: LOGIC TÍNH ĐIỂM SỨC KHỎE 
+        // PHẦN 1: LOGIC TÍNH ĐIỂM SỨC KHỎE (Giữ nguyên của nhóm)
         // =========================================================
-        
         $recentMetrics = DB::table('server_metrics')
             ->orderBy('created_at', 'desc')
             ->limit(10)
@@ -21,12 +20,12 @@ class AegisController extends Controller
 
         $avgCpu = $recentMetrics->avg('cpu_percent') ?? 0;
         $avgRam = $recentMetrics->avg('ram_percent') ?? 0;
-        $healthScore = 100 - ($avgCpu * 0.5) - ($avgRam * 0.3);
+        $healthScore = max(0, 100 - ($avgCpu * 0.5) - ($avgRam * 0.3));
         $threatCount = DB::table('blacklists')->count();
         $isSpiking = $avgCpu > 80 ? true : false;
 
         $insights = [
-            "> [SYSTEM] Aegis Neural Core v4.0 (NLP Enabled) initialized...",
+            "> [SYSTEM] Aegis Neural Core v4.0 (Gemini 1.5 Flash) active...",
             "> [INFO] Connecting to local database 'server-health'..."
         ];
 
@@ -40,16 +39,14 @@ class AegisController extends Controller
 
 
         // =========================================================
-        // PHẦN 2: TƯƠNG TÁC AI BẰNG REVERSE PROXY & MOCK DATA
+        // PHẦN 2: BỘ NÃO AI CHUẨN XÁC, KHÔNG DÙNG DỮ LIỆU ẢO
         // =========================================================
-        
         $chartData = null; 
         $aiResponse = "> Chờ lệnh từ quản trị viên...";
 
         if ($request->has('ai_command')) {
             $command = $request->get('ai_command');
-            $aiResponse = "> AEGIS: Đang phân tích ngữ nghĩa: '$command'...";
-
+            
             $historyData = DB::table('server_metrics')
                 ->where('created_at', '>=', now()->subDay())
                 ->orderBy('created_at', 'asc') 
@@ -58,30 +55,27 @@ class AegisController extends Controller
             $apiKey = env('GEMINI_API_KEY');
 
             if (empty($apiKey)) {
-                $aiResponse = "> Aegis Lỗi: Chưa cấu hình GEMINI_API_KEY trong file .env!";
+                $aiResponse = "> Lỗi Hệ Thống: Chưa cấu hình GEMINI_API_KEY trong file .env!";
             } else {
-                $prompt = "Bạn là Aegis, một AI quản trị Server chuyên nghiệp. 
-                Người dùng ra lệnh: '$command'. 
-                Nhiệm vụ của bạn: Phân tích ý định của lệnh này. 
-                - Nếu người dùng muốn xem/vẽ biểu đồ liên quan đến CPU, intent là 'draw_cpu'. 
-                - Nếu người dùng muốn xem/vẽ biểu đồ liên quan đến RAM, intent là 'draw_ram'. 
-                - Nếu hỏi chuyện khác hoặc chào hỏi bình thường, intent là 'chat'.
-                Hãy tạo ra một câu trả lời ngắn gọn, ngầu và mang phong cách hacker/chuyên gia bảo mật.
-                TRẢ VỀ ĐÚNG MỘT CHUỖI JSON thuần túy (không chứa ký tự markdown như ```json, không xuống dòng thừa) với cấu trúc: 
-                {\"intent\": \"tên_intent_ở_đây\", \"reply\": \"câu_trả_lời_của_bạn_ở_đây\"}";
+                // Prompt ép AI trả lời chính xác, chuyên nghiệp, kèm data thật
+                $prompt = "Bạn là Aegis, một AI quản trị Server bảo mật cao. 
+                Người dùng ra lệnh/hỏi: '{$command}'.
+                Nhiệm vụ của bạn:
+                1. Trả lời câu hỏi một cách thông minh, chính xác, giọng điệu ngầu và chuyên nghiệp. KHÔNG trả lời lan man. (Hiện tại CPU Server đang tải " . round($avgCpu, 1) . "%, RAM " . round($avgRam, 1) . "% - Hãy dùng thông tin này nếu người dùng hỏi về tình trạng máy chủ).
+                2. Phân loại lệnh (intent):
+                   - Nếu người dùng muốn vẽ biểu đồ CPU, intent = 'draw_cpu'.
+                   - Nếu người dùng muốn vẽ biểu đồ RAM, intent = 'draw_ram'.
+                   - Nếu hỏi thông thường, intent = 'chat'.
+                CHỈ trả về ĐÚNG MỘT khối JSON thuần túy (không markdown ```json):
+                {\"intent\": \"tên_intent\", \"reply\": \"câu_trả_lời_của_bạn\"}";
 
-                // 1. TẠO ĐƯỜNG DẪN PROXY TRUNG CHUYỂN
-                $googleUrl = "[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=)" . $apiKey;
-                $proxyUrl = "[https://corsproxy.io/](https://corsproxy.io/)?" . urlencode($googleUrl);
-
-                $apiSuccess = false; // Biến cờ hiệu kiểm tra API có chạy không
+                // Gọi trực tiếp đến Google, dùng đúng model, bỏ Proxy lỗi
+                $googleUrl = "[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=)" . $apiKey;
 
                 try {
-                    // Gọi qua Proxy kèm User-Agent giả lập trình duyệt để tránh bị chặn
-                    $response = Http::timeout(10)->withHeaders([
-                        'Content-Type' => 'application/json',
-                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-                    ])->post($proxyUrl, [
+                    $response = Http::timeout(15)->withHeaders([
+                        'Content-Type' => 'application/json'
+                    ])->post($googleUrl, [
                         'contents' => [
                             ['parts' => [['text' => $prompt]]]
                         ]
@@ -91,13 +85,14 @@ class AegisController extends Controller
                         $resultText = $response->json('candidates.0.content.parts.0.text');
                         
                         if (!empty($resultText)) {
-                            $cleanJson = str_replace(['```json', '```', "\n", "\r"], '', $resultText);
-                            $aiResult = json_decode(trim($cleanJson));
+                            // Dọn dẹp JSON rác từ AI nếu có
+                            $cleanJson = trim(preg_replace('/```json|```/', '', $resultText));
+                            $aiResult = json_decode($cleanJson);
 
-                            if ($aiResult && isset($aiResult->intent)) {
-                                $apiSuccess = true; // Đánh dấu đã gọi Google thành công
-                                $aiResponse = "> Aegis: " . $aiResult->reply;
+                            if ($aiResult && isset($aiResult->reply)) {
+                                $aiResponse = $aiResult->reply;
                                 
+                                // Nếu AI phân tích đúng lệnh vẽ biểu đồ
                                 if ($aiResult->intent === 'draw_cpu') {
                                     $chartData = [
                                         'label' => 'Mức sử dụng CPU (%)',
@@ -113,38 +108,17 @@ class AegisController extends Controller
                                         'color' => '#a855f7' 
                                     ];
                                 }
+                            } else {
+                                $aiResponse = "> Aegis: Lỗi phân tích ngữ nghĩa (JSON Parser Error).";
                             }
                         }
+                    } else {
+                        // In lỗi thật từ Google để dễ fix (Vd: Lỗi Location)
+                        $errorMsg = $response->json('error.message') ?? 'Unknown Error';
+                        $aiResponse = "> Lỗi kết nối Google API: " . $errorMsg;
                     }
                 } catch (\Exception $e) {
-                    // Im lặng nuốt lỗi để chạy Kế hoạch B bên dưới
-                }
-
-                // 2. KẾ HOẠCH B: MOCK DATA (Cứu nguy khi bảo vệ nếu mạng chết/Proxy lỗi)
-                if (!$apiSuccess) {
-                    $cmdLower = strtolower($command);
-                    $mockCpu = round($avgCpu, 1);
-                    $mockRam = round($avgRam, 1);
-
-                    if (str_contains($cmdLower, 'cpu')) {
-                        $aiResponse = "> Aegis (Local Mode): Hệ thống phát hiện bạn muốn kiểm tra CPU. Mức tải hiện tại là {$mockCpu}%. Đang xuất biểu đồ phân tích không gian...";
-                        $chartData = [
-                            'label' => 'Mức sử dụng CPU (%)',
-                            'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
-                            'values' => $historyData->pluck('cpu_percent')->toArray(),
-                            'color' => '#22d3ee' 
-                        ];
-                    } elseif (str_contains($cmdLower, 'ram') || str_contains($cmdLower, 'bộ nhớ')) {
-                        $aiResponse = "> Aegis (Local Mode): Bộ nhớ RAM đang ở mức {$mockRam}%. Các tiến trình ổn định. Biểu đồ RAM bên dưới:";
-                        $chartData = [
-                            'label' => 'Mức sử dụng RAM (%)',
-                            'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
-                            'values' => $historyData->pluck('ram_percent')->toArray(),
-                            'color' => '#a855f7' 
-                        ];
-                    } else {
-                        $aiResponse = "> Aegis (Local Mode): Tôi là hệ thống AI giám sát mạng nội bộ. Hiện tại kết nối đám mây tạm thời gián đoạn, nhưng tôi vẫn đang bảo vệ server của bạn an toàn.";
-                    }
+                    $aiResponse = "> Lỗi đường truyền mạng: " . $e->getMessage();
                 }
             }
         }
@@ -152,7 +126,6 @@ class AegisController extends Controller
         // =========================================================
         // PHẦN 3: GỬI DỮ LIỆU SANG GIAO DIỆN BLADE
         // =========================================================
-        
         return view('ai_intelligence', [
             'score' => round($healthScore),
             'threats' => $threatCount,
