@@ -11,7 +11,7 @@ class AegisController extends Controller
     public function index(Request $request) 
     {
         // =========================================================
-        // PHẦN 1: LOGIC TÍNH ĐIỂM SỨC KHỎE (Giữ nguyên của nhóm)
+        // PHẦN 1: LOGIC TÍNH ĐIỂM SỨC KHỎE
         // =========================================================
         $recentMetrics = DB::table('server_metrics')
             ->orderBy('created_at', 'desc')
@@ -52,12 +52,12 @@ class AegisController extends Controller
                 ->orderBy('created_at', 'asc') 
                 ->get();
 
-            $apiKey = env('GEMINI_API_KEY');
+            // SỬA QUAN TRỌNG 1: Dùng hàm trim() để cắt bỏ khoảng trắng thừa/ký tự ẩn của API Key
+            $apiKey = trim(env('GEMINI_API_KEY'));
 
             if (empty($apiKey)) {
                 $aiResponse = "> Lỗi Hệ Thống: Chưa cấu hình GEMINI_API_KEY trong file .env!";
             } else {
-                // Prompt ép AI trả lời chính xác, chuyên nghiệp, kèm data thật
                 $prompt = "Bạn là Aegis, một AI quản trị Server bảo mật cao. 
                 Người dùng ra lệnh/hỏi: '{$command}'.
                 Nhiệm vụ của bạn:
@@ -69,10 +69,11 @@ class AegisController extends Controller
                 CHỈ trả về ĐÚNG MỘT khối JSON thuần túy (không markdown ```json):
                 {\"intent\": \"tên_intent\", \"reply\": \"câu_trả_lời_của_bạn\"}";
 
-                // Gọi trực tiếp đến Google, dùng đúng model, bỏ Proxy lỗi
-                    $googleUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;                
+                // SỬA QUAN TRỌNG 2: Dùng model `gemini-1.5-flash-latest` để luôn lấy bản chuẩn nhất
+                $googleUrl = "[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=)" . $apiKey;                
+                
                 try {
-                    $response = Http::timeout(15)->withHeaders([
+                    $response = Http::timeout(20)->withHeaders([
                         'Content-Type' => 'application/json'
                     ])->post($googleUrl, [
                         'contents' => [
@@ -84,14 +85,15 @@ class AegisController extends Controller
                         $resultText = $response->json('candidates.0.content.parts.0.text');
                         
                         if (!empty($resultText)) {
-                            // Dọn dẹp JSON rác từ AI nếu có
-                            $cleanJson = trim(preg_replace('/```json|```/', '', $resultText));
+                            // SỬA QUAN TRỌNG 3: Regex mạnh mẽ hơn để bóc tách chính xác JSON từ AI
+                            preg_match('/\{.*\}/s', $resultText, $matches);
+                            $cleanJson = !empty($matches) ? $matches[0] : trim(preg_replace('/```json|```/', '', $resultText));
+                            
                             $aiResult = json_decode($cleanJson);
 
                             if ($aiResult && isset($aiResult->reply)) {
                                 $aiResponse = $aiResult->reply;
                                 
-                                // Nếu AI phân tích đúng lệnh vẽ biểu đồ
                                 if ($aiResult->intent === 'draw_cpu') {
                                     $chartData = [
                                         'label' => 'Mức sử dụng CPU (%)',
@@ -108,16 +110,16 @@ class AegisController extends Controller
                                     ];
                                 }
                             } else {
-                                $aiResponse = "> Aegis: Lỗi phân tích ngữ nghĩa (JSON Parser Error).";
+                                $aiResponse = "> Aegis: Lỗi phân tích JSON từ hệ thống AI lõi. Phản hồi gốc: " . $resultText;
                             }
                         }
                     } else {
-                        // In lỗi thật từ Google để dễ fix (Vd: Lỗi Location)
+                        // Hiển thị lỗi rõ ràng nếu Google chặn hoặc API Key sai
                         $errorMsg = $response->json('error.message') ?? 'Unknown Error';
                         $aiResponse = "> Lỗi kết nối Google API: " . $errorMsg;
                     }
                 } catch (\Exception $e) {
-                    $aiResponse = "> Lỗi đường truyền mạng: " . $e->getMessage();
+                    $aiResponse = "> Lỗi đường truyền mạng VPS: " . $e->getMessage();
                 }
             }
         }
