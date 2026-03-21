@@ -25,7 +25,7 @@ class AegisController extends Controller
         $isSpiking = $avgCpu > 80 ? true : false;
 
         $insights = [
-            "> [SYSTEM] Aegis Neural Core v4.0 (Gemini 1.5 Flash) active...",
+            "> [SYSTEM] Aegis Neural Core v4.0 (Gemini 1.0 Pro) active...",
             "> [INFO] Connecting to local database 'server-health'..."
         ];
 
@@ -52,7 +52,7 @@ class AegisController extends Controller
                 ->orderBy('created_at', 'asc') 
                 ->get();
 
-            // SỬA QUAN TRỌNG 1: Dùng hàm trim() để cắt bỏ khoảng trắng thừa/ký tự ẩn của API Key
+            // Cắt bỏ khoảng trắng thừa/ký tự ẩn của API Key
             $apiKey = trim(env('GEMINI_API_KEY'));
 
             if (empty($apiKey)) {
@@ -69,10 +69,10 @@ class AegisController extends Controller
                 CHỈ trả về ĐÚNG MỘT khối JSON thuần túy (không markdown ```json):
                 {\"intent\": \"tên_intent\", \"reply\": \"câu_trả_lời_của_bạn\"}";
 
-                // SỬA QUAN TRỌNG 2: Dùng model `gemini-1.5-flash-latest` để luôn lấy bản chuẩn nhất
-                // Mẹo ngắt chuỗi để chống lỗi copy dính link ẩn
-                    $domain = "https://" . "generativelanguage.googleapis.com";
-                    $googleUrl = $domain . "/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" . $apiKey;                
+                // SỬA CHUẨN: Dùng gemini-1.0-pro để không bị lỗi Not Found
+                $domain = "https://" . "generativelanguage.googleapis.com";
+                $googleUrl = $domain . "/v1beta/models/gemini-1.0-pro:generateContent?key=" . $apiKey;                
+                
                 try {
                     $response = Http::timeout(20)->withHeaders([
                         'Content-Type' => 'application/json'
@@ -86,7 +86,7 @@ class AegisController extends Controller
                         $resultText = $response->json('candidates.0.content.parts.0.text');
                         
                         if (!empty($resultText)) {
-                            // SỬA QUAN TRỌNG 3: Regex mạnh mẽ hơn để bóc tách chính xác JSON từ AI
+                            // Regex mạnh mẽ hơn để bóc tách chính xác JSON từ AI
                             preg_match('/\{.*\}/s', $resultText, $matches);
                             $cleanJson = !empty($matches) ? $matches[0] : trim(preg_replace('/```json|```/', '', $resultText));
                             
