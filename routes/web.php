@@ -14,6 +14,10 @@ use App\Http\Controllers\SystemLogController;
 // Route cho Log & Analytics
 Route::get('/analytics/logs', [SystemLogController::class, 'index'])->name('logs.index');
 
+Route::get('/analytics/logs', [SystemLogController::class, 'index'])->name('logs.index');
+// Route hút log SSH thật từ hệ điều hành
+Route::post('/analytics/logs/sync-ssh', [SystemLogController::class, 'syncSshLogs'])->name('logs.sync_ssh');
+
 // ==========================================
 // 1. ĐIỀU HƯỚNG CỔNG CHÍNH
 // ==========================================
