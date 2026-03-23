@@ -17,24 +17,26 @@ class AegisController extends Controller
             ->limit(10)
             ->get();
 
-        $latestMetric = $recentMetrics->first(); // Lấy bản ghi mới nhất
+        $latestMetric = $recentMetrics->first();
 
         // 1. Dữ liệu CPU & RAM
         $avgCpu = $recentMetrics->avg('cpu_percent') ?? 0;
         $avgRam = $recentMetrics->avg('ram_percent') ?? 0;
 
-        // 2. Dữ liệu Ổ cứng (Disk) - Soi trực tiếp phần cứng thực tế
+        // 2. Dữ liệu Ổ cứng (Disk) - Lấy trực tiếp từ phần cứng vật lý
         $diskTotal = disk_total_space('/');
         $diskFree = disk_free_space('/');
         $diskUsedPercent = $diskTotal > 0 ? round((($diskTotal - $diskFree) / $diskTotal) * 100, 1) : 0;
         $diskFreeGB = round($diskFree / 1073741824, 2);
         $diskTotalGB = round($diskTotal / 1073741824, 2);
 
-        // 3. Dữ liệu Mạng (Network) - Lấy từ Database của bạn
-        // Lưu ý: Tôi đang giả định tên cột là 'download_speed' và 'upload_speed'. 
-        // Nếu DB của bạn đặt tên khác (ví dụ network_rx), hãy sửa lại chữ ở bên dưới nhé.
-        $netDownload = isset($latestMetric->download_speed) ? $latestMetric->download_speed : (isset($latestMetric->network_rx) ? $latestMetric->network_rx : 0);
-        $netUpload = isset($latestMetric->upload_speed) ? $latestMetric->upload_speed : (isset($latestMetric->network_tx) ? $latestMetric->network_tx : 0);
+        // 3. Dữ liệu Mạng (Network) - Quét tự động tên cột DB & Format 2 số thập phân giống Dashboard
+        $metricData = $latestMetric ? (array) $latestMetric : [];
+        $rawDownload = $metricData['download_speed'] ?? $metricData['network_rx'] ?? $metricData['download'] ?? $metricData['rx_speed'] ?? $metricData['rx'] ?? 0;
+        $rawUpload = $metricData['upload_speed'] ?? $metricData['network_tx'] ?? $metricData['upload'] ?? $metricData['tx_speed'] ?? $metricData['tx'] ?? 0;
+        
+        $netDownload = number_format((float)$rawDownload, 2, '.', '');
+        $netUpload = number_format((float)$rawUpload, 2, '.', '');
 
         // 4. Dữ liệu Tường lửa & Sức khỏe
         $healthScore = max(0, 100 - ($avgCpu * 0.5) - ($avgRam * 0.3));
@@ -55,7 +57,7 @@ class AegisController extends Controller
         $insights[] = "> STATUS: Firewall đang khóa " . $threatCount . " mục tiêu nguy hiểm.";
 
         // =========================================================
-        // PHẦN 2: BỘ NÃO LOCAL (KHÔNG ẢO - KHÔNG VẼ BIỂU ĐỒ)
+        // PHẦN 2: BỘ NÃO LOCAL (PHÂN TÍCH TỪ KHÓA)
         // =========================================================
         $chartData = null; 
         $aiResponse = "> Chờ lệnh từ quản trị viên...";
@@ -63,7 +65,6 @@ class AegisController extends Controller
         if ($request->has('ai_command')) {
             $command = mb_strtolower(trim($request->get('ai_command')), 'UTF-8');
 
-            // 1. Nhóm câu hỏi về TẤN CÔNG / BẢO MẬT
             if (str_contains($command, 'tấn công') || str_contains($command, 'hacker') || str_contains($command, 'ddos') || str_contains($command, 'bị cấm')) {
                 if ($threatCount > 0) {
                     $aiResponse = "> Aegis: [BÁO CÁO AN NINH] Hệ thống phòng thủ đang hoạt động mức cao. Đã phát hiện và khóa thành công {$threatCount} địa chỉ IP độc hại. Các cổng dịch vụ trọng yếu vẫn an toàn.";
@@ -71,34 +72,27 @@ class AegisController extends Controller
                     $aiResponse = "> Aegis: [BÁO CÁO AN NINH] Không gian mạng hiện tại hoàn toàn sạch. Chưa ghi nhận địa chỉ IP nào có hành vi rà quét trái phép (Blacklist: 0).";
                 }
             }
-            // 2. Nhóm câu hỏi về CPU
             elseif (str_contains($command, 'cpu') || str_contains($command, 'vi xử lý')) {
                 $cpuStatus = $avgCpu > 80 ? 'CẢNH BÁO MỨC TẢI CAO' : 'TỐT';
                 $aiResponse = "> Aegis: [PHÂN TÍCH CPU] Mức độ chiếm dụng vi xử lý hiện đang ở mức " . round($avgCpu, 1) . "%. Trạng thái: {$cpuStatus}. Các tiến trình lõi vận hành ổn định.";
             }
-            // 3. Nhóm câu hỏi về RAM
             elseif (str_contains($command, 'ram') || str_contains($command, 'bộ nhớ') || str_contains($command, 'memory')) {
                 $ramStatus = $avgRam > 85 ? 'SẮP TRÀN BỘ NHỚ' : 'ỔN ĐỊNH';
                 $aiResponse = "> Aegis: [PHÂN TÍCH RAM] Mức tiêu thụ RAM thực tế là " . round($avgRam, 1) . "%. Trạng thái: {$ramStatus}. Tài nguyên bộ nhớ vẫn đủ để đáp ứng các luồng dữ liệu mới.";
             }
-            // 4. Nhóm câu hỏi về Ổ CỨNG (DISK)
             elseif (str_contains($command, 'ổ cứng') || str_contains($command, 'disk') || str_contains($command, 'dung lượng')) {
                 $diskStatus = $diskUsedPercent > 90 ? 'CẢNH BÁO ĐẦY Ổ CỨNG' : 'ĐANG TRỐNG NHIỀU';
                 $aiResponse = "> Aegis: [PHÂN TÍCH Ổ CỨNG] Dung lượng lưu trữ đang sử dụng {$diskUsedPercent}% (Trống {$diskFreeGB}GB / Tổng {$diskTotalGB}GB). Trạng thái: {$diskStatus}. Dữ liệu log vẫn đang được ghi chép an toàn.";
             }
-            // 5. Nhóm câu hỏi về MẠNG (NETWORK)
             elseif (str_contains($command, 'mạng') || str_contains($command, 'network') || str_contains($command, 'băng thông') || str_contains($command, 'tốc độ')) {
                 $aiResponse = "> Aegis: [LƯU LƯỢNG MẠNG] Giao diện mạng phản hồi: Connected // Stable. Tốc độ hiện tại - Download: {$netDownload} MB/s | Upload: {$netUpload} MB/s. Không có dấu hiệu nghẽn cổ chai (bottleneck).";
             }
-            // 6. Nhóm câu hỏi về TÌNH TRẠNG HỆ THỐNG (Đã đổi tên)
             elseif (str_contains($command, 'tình trạng hệ thống') || str_contains($command, 'status') || str_contains($command, 'tổng quan')) {
                 $aiResponse = "> Aegis: [TÌNH TRẠNG HỆ THỐNG] Core Health Score: " . round($healthScore) . "/100. \nCPU: " . round($avgCpu, 1) . "% | RAM: " . round($avgRam, 1) . "% | Disk: {$diskUsedPercent}%. \nTường lửa đã chặn {$threatCount} mối đe dọa. Toàn bộ máy chủ đang trong trạng thái hoàn hảo.";
             }
-            // 7. Nhóm CHÀO HỎI & GIỚI THIỆU ĐỒ ÁN
             elseif (str_contains($command, 'đồ án') || str_contains($command, 'hệ thống này làm gì') || str_contains($command, 'chào') || str_contains($command, 'hello')) {
                 $aiResponse = "> Aegis: Xin chào. Tôi là trung tâm trí tuệ nhân tạo của hệ thống Server Health Monitoring. Nhiệm vụ của tôi là giám sát tài nguyên (CPU, RAM, Disk, Network) theo thời gian thực và tự động chặn đứng các cuộc tấn công DDoS.";
             }
-            // MẶC ĐỊNH KHÔNG HIỂU
             else {
                 $aiResponse = "> Aegis: [LỖI NGỮ NGHĨA] Lệnh không xác định. Các khóa quét hỗ trợ: 'tình trạng hệ thống', 'tình trạng ổ cứng', 'kiểm tra mạng', 'thông số ram', 'thông số cpu', 'kiểm tra tấn công'.";
             }
