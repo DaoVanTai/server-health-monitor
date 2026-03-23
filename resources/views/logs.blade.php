@@ -13,6 +13,7 @@
         }
         body { background: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; min-height: 100vh; }
         
+        /* --- SIDEBAR --- */
         .sidebar { width: 70px; background-color: #0f172a; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 20px 0; transition: width 0.3s; overflow: hidden; white-space: nowrap; position: fixed; height: 100vh; z-index: 1000; }
         .sidebar:hover { width: 220px; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
         .sidebar-item { width: 100%; padding: 15px 0; display: flex; align-items: center; color: var(--text-muted); text-decoration: none; transition: all 0.2s; border-left: 3px solid transparent; }
@@ -30,51 +31,74 @@
         .analytics-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 25px; }
         @media (max-width: 1200px) { .analytics-grid { grid-template-columns: 1fr; } }
 
-        /* Filter Bar */
+        /* --- BỘ LỌC TÌM KIẾM CÓ HIỆU ỨNG NỔI --- */
         .filter-bar { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid #1f2937; align-items: center;}
-        .filter-input { background: #0b1120; border: 1px solid #374151; color: white; padding: 10px 15px; border-radius: 6px; outline: none; }
-        .filter-input:focus { border-color: var(--neon-blue); }
-        .btn-action { background: var(--neon-blue); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; text-decoration: none;}
-        .btn-action:hover { opacity: 0.8; }
-        .btn-danger { background: var(--neon-red); }
+        
+        .filter-input { 
+            background: #0b1120; 
+            border: 1px solid #374151; 
+            color: white; 
+            padding: 10px 15px; 
+            border-radius: 6px; 
+            outline: none; 
+            transition: all 0.3s ease; 
+        }
+        
+        .filter-input:hover {
+            border-color: var(--neon-blue);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.25);
+            transform: translateY(-2px);
+            cursor: pointer;
+        }
 
-        /* --- CSS MỚI: Tùy chỉnh Icon Lịch --- */
+        .filter-input:focus { 
+            border-color: var(--neon-blue); 
+            box-shadow: 0 0 10px var(--neon-blue);
+            transform: translateY(-2px);
+        }
+
+        .btn-action { background: var(--neon-blue); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.3s ease; text-decoration: none;}
+        .btn-action:hover { 
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+        .btn-clear { background: #374151; }
+        .btn-clear:hover { box-shadow: 0 5px 15px rgba(156, 163, 175, 0.3); }
+
+        /* --- ICON LỊCH TO RÕ RÀNG --- */
         input[type="date"] {
             position: relative;
             padding-right: 15px;
         }
         input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1); /* Đổi icon thành màu trắng */
-            transform: scale(1.4); /* Phóng to icon 40% */
+            filter: invert(1);
+            transform: scale(1.4);
             cursor: pointer;
             opacity: 0.6;
             transition: 0.2s;
-            margin-left: auto; /* Đẩy sang sát mép phải */
+            margin-left: auto;
         }
         input[type="date"]::-webkit-calendar-picker-indicator:hover {
             opacity: 1;
-            transform: scale(1.6); /* Nổi to hơn khi di chuột */
+            transform: scale(1.6);
         }
 
-        /* --- CSS MỚI: Thanh cuộn mượt mà --- */
+        /* --- THANH CUỘN MƯỢT --- */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 
-        /* Table Cơ bản */
+        /* --- BẢNG LOGS & HIỆU ỨNG HOVER --- */
         .log-table { width: 100%; border-collapse: collapse; }
         .log-table th { text-align: left; color: #9ca3af; padding: 15px; border-bottom: 1px solid #374151; font-size: 13px; }
         .log-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 14px; }
         
-        /* --- CSS MỚI: Hiệu ứng Hover Nổi bật cho các dòng --- */
         .log-table tbody tr { transition: all 0.3s ease; }
         .log-table tbody tr:hover {
-            background-color: rgba(59, 130, 246, 0.08); /* Highlight nền xanh nhẹ */
-            box-shadow: inset 4px 0 0 var(--neon-blue); /* Đường kẻ viền nổi bên trái */
-            cursor: pointer;
+            background-color: rgba(59, 130, 246, 0.08);
+            box-shadow: inset 4px 0 0 var(--neon-blue);
         }
         
-        /* Hiệu ứng Hover riêng cho Bảng Top IP (Màu Đỏ) */
         .top-ip-table tbody tr:hover {
             background-color: rgba(239, 68, 68, 0.1); 
             box-shadow: inset 4px 0 0 var(--neon-red);
@@ -97,13 +121,7 @@
     </aside>
 
     <main class="main-content">
-        <h1>
-            <span>📊 Phân Tích Sự Kiện (Analytics)</span>
-            <form action="{{ route('logs.sync_ssh') }}" method="POST" style="display:inline;">
-                @csrf
-                <button type="submit" class="btn-action btn-danger"><i class="fas fa-sync fa-spin"></i> Đồng bộ Log SSH (auth.log)</button>
-            </form>
-        </h1>
+        <h1><span>📊 Phân Tích Sự Kiện (Analytics)</span></h1>
         
         @if(session('success')) <div style="color: #10b981; margin-bottom: 15px;"><i class="fas fa-check"></i> {{ session('success') }}</div> @endif
         @if(session('error')) <div style="color: var(--neon-red); margin-bottom: 15px;"><i class="fas fa-times"></i> {{ session('error') }}</div> @endif
@@ -158,6 +176,7 @@
                 <input type="date" name="to_date" class="filter-input" value="{{ request('to_date') }}" title="Đến ngày">
 
                 <button type="submit" class="btn-action"><i class="fas fa-search"></i> LỌC DỮ LIỆU</button>
+                <a href="{{ route('logs.index') }}" class="btn-action btn-clear" title="Xóa toàn bộ bộ lọc"><i class="fas fa-redo"></i> LÀM MỚI</a>
             </form>
 
             <table class="log-table">
@@ -187,7 +206,7 @@
                         <td style="color: var(--neon-blue); font-family: monospace;">{{ $log->ip_address ?? 'N/A' }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" style="text-align: center; padding: 30px;">Không có dữ liệu Log.</td></tr>
+                    <tr><td colspan="5" style="text-align: center; padding: 30px;">Không có dữ liệu Log phù hợp.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -13,7 +13,7 @@ class SystemLogController extends Controller
     {
         $query = SystemLog::query();
 
-        // 5.1 & 5.2 CHỨC NĂNG TÌM KIẾM & LỌC THEO LOẠI
+        // 1. CHỨC NĂNG TÌM KIẾM & LỌC THEO LOẠI
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -27,14 +27,14 @@ class SystemLogController extends Controller
             $query->where('level', $request->level);
         }
 
-        // 5.3 LỌC THEO THỜI GIAN (whereBetween)
+        // 2. LỌC THEO THỜI GIAN
         if ($request->filled('from_date') && $request->filled('to_date')) {
             $from = $request->from_date . ' 00:00:00';
             $to = $request->to_date . ' 23:59:59';
             $query->whereBetween('created_at', [$from, $to]);
         }
 
-        // 6.1 & 6.2 THỐNG KÊ ANALYTICS CẤP CAO
+        // 3. THỐNG KÊ ANALYTICS CẤP CAO
         $stats = [
             'total' => SystemLog::count(),
             'attack' => SystemLog::where('level', 'danger')->count(), // Tấn công (Đỏ)
@@ -42,15 +42,15 @@ class SystemLogController extends Controller
             'system' => SystemLog::where('level', 'info')->count(),   // Hệ thống (Xanh)
         ];
 
-        // [NÂNG CẤP] Lấy TẤT CẢ IP tấn công (Đỏ) và AI tự động chặn (Vàng)
+        // 4. LẤY TẤT CẢ IP TẤN CÔNG VÀ BỊ BAN (Đỏ & Vàng)
         $topIps = SystemLog::select('ip_address', DB::raw('count(*) as total'))
             ->whereNotNull('ip_address')
-            ->whereIn('level', ['danger', 'warning']) // Lấy cả cờ Đỏ và Vàng
+            ->whereIn('level', ['danger', 'warning']) 
             ->groupBy('ip_address')
             ->orderByDesc('total')
-            ->get(); // Đã xóa ->limit(5) để lấy toàn bộ danh sách
+            ->get(); 
 
-        // 6.3 CHUẨN BỊ DỮ LIỆU CHO BIỂU ĐỒ CHART.JS (7 ngày gần nhất)
+        // 5. CHUẨN BỊ DỮ LIỆU CHO BIỂU ĐỒ CHART.JS (7 ngày gần nhất)
         $chartLabels = [];
         $chartAttack = [];
         $chartAlert = [];
@@ -63,46 +63,9 @@ class SystemLogController extends Controller
             $chartAlert[] = SystemLog::whereDate('created_at', $date)->where('level', 'warning')->count();
         }
 
-        // Lấy danh sách hiển thị
+        // 6. LẤY DANH SÁCH HIỂN THỊ CHÍNH
         $logs = $query->orderBy('created_at', 'desc')->paginate(15)->appends($request->query());
 
         return view('logs', compact('logs', 'stats', 'topIps', 'chartLabels', 'chartAttack', 'chartAlert'));
-    }
-
-    // 3.2 ĐỌC LOG BẢO MẬT (SSH ATTACK) TỪ LINUX
-    public function syncSshLogs()
-    {
-        if (PHP_OS_FAMILY === 'Linux') {
-            try {
-                // Đọc 20 dòng log SSH thất bại mới nhất
-                $logLines = shell_exec("grep 'Failed password' /var/log/auth.log | tail -n 20");
-                
-                if ($logLines) {
-                    $lines = explode("\n", trim($logLines));
-                    $count = 0;
-
-                    foreach ($lines as $line) {
-                        // Tách IP bằng Regex chuẩn
-                        if (preg_match('/from (\d+\.\d+\.\d+\.\d+)/', $line, $matches)) {
-                            $ip = $matches[1];
-                            
-                            // Ghi vào bảng logs của hệ thống
-                            SystemLog::firstOrCreate([
-                                'ip_address' => $ip,
-                                'message' => "Cảnh báo SSH: " . trim($line),
-                                'level' => 'danger',
-                                'source' => 'SSH Security'
-                            ]);
-                            $count++;
-                        }
-                    }
-                    return back()->with('success', "Đã quét và đồng bộ $count bản ghi SSH Attack thành công!");
-                }
-            } catch (\Exception $e) {
-                return back()->with('error', "Không thể đọc file auth.log. Yêu cầu cấp quyền đọc cho user www.");
-            }
-        }
-        
-        return back()->with('error', "Hệ điều hành không hỗ trợ tính năng này (Chỉ dành cho Linux).");
     }
 }
