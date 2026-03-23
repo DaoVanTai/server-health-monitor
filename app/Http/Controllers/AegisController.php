@@ -40,7 +40,6 @@ class AegisController extends Controller
         // =========================================================
         // PHẦN 2: BỘ NÃO LOCAL (PHÂN TÍCH TỪ KHÓA - KHÔNG VẼ BIỂU ĐỒ)
         // =========================================================
-        // Giữ biến chartData = null để giao diện Blade không bị lỗi khi tìm biến này
         $chartData = null; 
         $aiResponse = "> Chờ lệnh từ quản trị viên...";
 
@@ -51,7 +50,7 @@ class AegisController extends Controller
             if (str_contains($command, 'chào') || str_contains($command, 'hello') || str_contains($command, 'aegis')) {
                 $aiResponse = "> Aegis: Xin chào Quản trị viên. Tôi là Aegis, AI giám sát độc quyền của hệ thống Server Health Monitoring. Hiện tại các luồng dữ liệu đang được theo dõi sát sao. Tôi có thể giúp gì cho bạn trong ca trực hôm nay?";
             }
-            // 2. Nhóm câu hỏi về TẤN CÔNG / BẢO MẬT (LẤY SỐ LIỆU THẬT TỪ FIREWALL)
+            // 2. Nhóm câu hỏi về TẤN CÔNG / BẢO MẬT
             elseif (str_contains($command, 'tấn công') || str_contains($command, 'hacker') || str_contains($command, 'ddos') || str_contains($command, 'bị cấm') || str_contains($command, 'bảo mật')) {
                 if ($threatCount > 0) {
                     $aiResponse = "> Aegis: [BÁO CÁO AN NINH] Hệ thống phòng thủ đang hoạt động mức cao. Đã phát hiện và khóa thành công {$threatCount} địa chỉ IP có hành vi Brute-force/DDoS. Các cổng dịch vụ trọng yếu vẫn an toàn và không bị gián đoạn.";
@@ -73,7 +72,7 @@ class AegisController extends Controller
             elseif (str_contains($command, 'sức khỏe') || str_contains($command, 'tổng thể') || str_contains($command, 'status') || str_contains($command, 'tình trạng')) {
                 $aiResponse = "> Aegis: [KIỂM TRA HỆ THỐNG] Điểm sức khỏe Health Score đạt " . round($healthScore) . "/100. Thông số chi tiết: CPU (" . round($avgCpu, 1) . "%), RAM (" . round($avgRam, 1) . "%), Số lượng hiểm họa đã chặn ({$threatCount}). Máy chủ đang vận hành trơn tru.";
             }
-            // 6. Nhóm câu hỏi về THÔNG TIN DỰ ÁN (DÙNG ĐỂ DEMO CHO GIÁO VIÊN)
+            // 6. Nhóm câu hỏi về THÔNG TIN DỰ ÁN
             elseif (str_contains($command, 'đồ án') || str_contains($command, 'hệ thống này làm gì') || str_contains($command, 'chức năng') || str_contains($command, 'dự án')) {
                 $aiResponse = "> Aegis: Đây là hệ thống Server Health Monitoring and Detection. Nhiệm vụ cốt lõi của tôi là giám sát tài nguyên phần cứng theo thời gian thực và tự động nhận diện, chặn đứng các cuộc tấn công mạng. Dữ liệu được thu thập liên tục để đảm bảo server luôn sống sót trước mọi rủi ro.";
             }
@@ -91,7 +90,7 @@ class AegisController extends Controller
             'threats' => $threatCount,
             'insights' => $insights,
             'avgCpu' => round($avgCpu, 1),
-            'chartData' => clone $chartData ?? null,
+            'chartData' => $chartData, // ĐÃ SỬA LỖI Ở ĐÂY
             'aiResponse' => $aiResponse 
         ]);
     }
