@@ -42,14 +42,13 @@ class SystemLogController extends Controller
             'system' => SystemLog::where('level', 'info')->count(),   // Hệ thống (Xanh)
         ];
 
-        // Lấy Top 5 IP tấn công nhiều nhất
+        // [NÂNG CẤP] Lấy TẤT CẢ IP tấn công (Đỏ) và AI tự động chặn (Vàng)
         $topIps = SystemLog::select('ip_address', DB::raw('count(*) as total'))
             ->whereNotNull('ip_address')
-            ->where('level', 'danger')
+            ->whereIn('level', ['danger', 'warning']) // Lấy cả cờ Đỏ và Vàng
             ->groupBy('ip_address')
             ->orderByDesc('total')
-            ->limit(5)
-            ->get();
+            ->get(); // Đã xóa ->limit(5) để lấy toàn bộ danh sách
 
         // 6.3 CHUẨN BỊ DỮ LIỆU CHO BIỂU ĐỒ CHART.JS (7 ngày gần nhất)
         $chartLabels = [];

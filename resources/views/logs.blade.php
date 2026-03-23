@@ -38,16 +38,53 @@
         .btn-action:hover { opacity: 0.8; }
         .btn-danger { background: var(--neon-red); }
 
-        /* Table */
+        /* --- CSS MỚI: Tùy chỉnh Icon Lịch --- */
+        input[type="date"] {
+            position: relative;
+            padding-right: 15px;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1); /* Đổi icon thành màu trắng */
+            transform: scale(1.4); /* Phóng to icon 40% */
+            cursor: pointer;
+            opacity: 0.6;
+            transition: 0.2s;
+            margin-left: auto; /* Đẩy sang sát mép phải */
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+            transform: scale(1.6); /* Nổi to hơn khi di chuột */
+        }
+
+        /* --- CSS MỚI: Thanh cuộn mượt mà --- */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+        /* Table Cơ bản */
         .log-table { width: 100%; border-collapse: collapse; }
         .log-table th { text-align: left; color: #9ca3af; padding: 15px; border-bottom: 1px solid #374151; font-size: 13px; }
         .log-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 14px; }
         
-        /* Badges theo yêu cầu: Đỏ - Vàng - Xanh */
+        /* --- CSS MỚI: Hiệu ứng Hover Nổi bật cho các dòng --- */
+        .log-table tbody tr { transition: all 0.3s ease; }
+        .log-table tbody tr:hover {
+            background-color: rgba(59, 130, 246, 0.08); /* Highlight nền xanh nhẹ */
+            box-shadow: inset 4px 0 0 var(--neon-blue); /* Đường kẻ viền nổi bên trái */
+            cursor: pointer;
+        }
+        
+        /* Hiệu ứng Hover riêng cho Bảng Top IP (Màu Đỏ) */
+        .top-ip-table tbody tr:hover {
+            background-color: rgba(239, 68, 68, 0.1); 
+            box-shadow: inset 4px 0 0 var(--neon-red);
+        }
+
+        /* Badges */
         .badge { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-        .badge-danger { color: var(--neon-red); border: 1px solid var(--neon-red); } /* Attack */
-        .badge-warning { color: var(--neon-yellow); border: 1px solid var(--neon-yellow); } /* Alert */
-        .badge-info { color: var(--neon-blue); border: 1px solid var(--neon-blue); } /* System */
+        .badge-danger { color: var(--neon-red); border: 1px solid var(--neon-red); } 
+        .badge-warning { color: var(--neon-yellow); border: 1px solid var(--neon-yellow); } 
+        .badge-info { color: var(--neon-blue); border: 1px solid var(--neon-blue); } 
     </style>
 </head>
 <body>
@@ -77,17 +114,31 @@
                 <canvas id="attackChart" height="100"></canvas>
             </div>
 
-            <div class="card">
-                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-skull-crossbones"></i> Top 5 IP Tấn Công</h3>
-                <table class="log-table">
-                    <tr><th>IP ADDRESS</th><th>ATTEMPTS</th></tr>
-                    @foreach($topIps as $top)
-                    <tr>
-                        <td style="color: var(--neon-red); font-family: monospace;">{{ $top->ip_address }}</td>
-                        <td style="font-weight:bold;">{{ $top->total }} lần</td>
-                    </tr>
-                    @endforeach
-                </table>
+            <div class="card" style="display: flex; flex-direction: column;">
+                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-skull-crossbones"></i> Bảng Xếp Hạng IP Tấn Công</h3>
+                
+                <div class="custom-scrollbar" style="flex: 1; overflow-y: auto; max-height: 230px; padding-right: 5px;">
+                    <table class="log-table top-ip-table">
+                        <thead>
+                            <tr>
+                                <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">IP ADDRESS</th>
+                                <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">ATTEMPTS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($topIps as $top)
+                            <tr>
+                                <td style="color: var(--neon-red); font-family: monospace;">{{ $top->ip_address }}</td>
+                                <td style="font-weight:bold;">{{ $top->total }} lần</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="2" style="text-align: center; color: var(--text-muted);">Chưa có dữ liệu tấn công.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
