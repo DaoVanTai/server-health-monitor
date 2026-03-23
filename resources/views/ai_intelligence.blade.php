@@ -70,7 +70,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
         }
 
-        /* --- LỊCH SỬ CHAT (CÓ HIỆU ỨNG MỞ RỘNG KHI HOVER) --- */
+        /* --- LỊCH SỬ CHAT --- */
         .chat-history-sidebar {
             width: 55px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
             display: flex; flex-direction: column; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -214,8 +214,7 @@
                             <i class="fas fa-plus"></i> <span class="sidebar-text-chat">Đoạn chat mới</span>
                         </button>
                     </div>
-                    <div class="session-list" id="session-list">
-                        </div>
+                    <div class="session-list" id="session-list"></div>
                 </div>
 
                 <div class="chat-main">
@@ -272,49 +271,41 @@
             }
         });
 
-        // --- LOGIC QUẢN LÝ LỊCH SỬ CHAT (MULTI-SESSIONS) ---
+        // --- LOGIC QUẢN LÝ LỊCH SỬ CHAT (MULTI-SESSIONS THÔNG MINH) ---
         let chatSessions = JSON.parse(sessionStorage.getItem('aegis_sessions')) || [];
-        let currentSessionId = sessionStorage.getItem('aegis_current_session');
-
-        function generateId() { return Date.now().toString(); }
-
-        // Khởi tạo nếu trống
-        if (chatSessions.length === 0) {
-            const firstId = generateId();
-            chatSessions.push({
-                id: firstId,
-                title: 'Trò chuyện khởi động',
-                pinned: false,
-                messages: [{ sender: 'ai', text: 'Xin chào Quản trị viên. Tôi là Aegis, AI giám sát độc quyền của hệ thống Server Health Monitoring. Hiện tại các luồng dữ liệu đang được theo dõi sát sao. Tôi có thể giúp gì cho bạn?' }]
-            });
-            currentSessionId = firstId;
-            saveToStorage();
-        } else if (!currentSessionId || !chatSessions.find(s => s.id === currentSessionId)) {
-            currentSessionId = chatSessions[0].id;
-        }
-
-        function saveToStorage() {
-            sessionStorage.setItem('aegis_sessions', JSON.stringify(chatSessions));
-            sessionStorage.setItem('aegis_current_session', currentSessionId);
-        }
 
         @if(request()->has('ai_command'))
+            // --- TRƯỜNG HỢP CÓ TIN NHẮN ĐƯỢC GỬI ĐI ---
             const userCmd = {!! json_encode(request()->get('ai_command')) !!};
             const aiResp = {!! json_encode($aiResponse ?? '') !!};
             
+            let currentSessionId = sessionStorage.getItem('aegis_current_session');
             let curSession = chatSessions.find(s => s.id === currentSessionId);
-            if(!curSession) { curSession = chatSessions[0]; currentSessionId = curSession.id; }
-
-            if (curSession.messages.length <= 1) {
-                curSession.title = userCmd.length > 20 ? userCmd.substring(0, 20) + '...' : userCmd;
+            
+            // Chỉ tạo session khi người dùng thực sự gửi lệnh đầu tiên
+            if(!curSession) {
+                currentSessionId = Date.now().toString();
+                curSession = {
+                    id: currentSessionId,
+                    title: userCmd.length > 20 ? userCmd.substring(0, 20) + '...' : userCmd,
+                    pinned: false,
+                    messages: [{ sender: 'ai', text: 'Xin chào Quản trị viên. Tôi là Aegis, AI giám sát độc quyền của hệ thống Server Health Monitoring. Hiện tại các luồng dữ liệu đang được theo dõi sát sao. Tôi có thể giúp gì cho bạn?' }]
+                };
+                chatSessions.push(curSession);
             }
 
+            // Ghi dữ liệu vào mảng (Tránh trùng lặp)
             const lastMsg = curSession.messages[curSession.messages.length - 1];
             if (!lastMsg || lastMsg.text !== aiResp) {
                 curSession.messages.push({ sender: 'user', text: userCmd });
                 curSession.messages.push({ sender: 'ai', text: aiResp });
-                saveToStorage();
+                
+                sessionStorage.setItem('aegis_sessions', JSON.stringify(chatSessions));
+                sessionStorage.setItem('aegis_current_session', currentSessionId);
             }
+        @else
+            // --- TRƯỜNG HỢP THOÁT RA VÀO LẠI (Tạo trang chat trắng tinh) ---
+            sessionStorage.removeItem('aegis_current_session');
         @endif
 
         const chatHistoryEl = document.getElementById('chat-history');
@@ -339,7 +330,7 @@
             e.stopPropagation();
             let session = chatSessions.find(s => s.id === id);
             if(session) session.pinned = !session.pinned;
-            saveToStorage();
+            sessionStorage.setItem('aegis_sessions', JSON.stringify(chatSessions));
             renderSessionList();
         }
 
@@ -350,7 +341,7 @@
                 let newName = prompt('Nhập tên mới cho cuộc trò chuyện:', session.title);
                 if(newName !== null && newName.trim() !== '') {
                     session.title = newName.trim();
-                    saveToStorage();
+                    sessionStorage.setItem('aegis_sessions', JSON.stringify(chatSessions));
                     renderSessionList();
                 }
             }
@@ -360,22 +351,21 @@
             e.stopPropagation();
             if(confirm('Cảnh báo: Bạn có chắc chắn muốn xóa vĩnh viễn đoạn chat này không?')) {
                 chatSessions = chatSessions.filter(s => s.id !== id);
-                if(chatSessions.length === 0) {
-                    const newId = generateId();
-                    chatSessions.push({ id: newId, title: 'Đoạn chat mới', pinned: false, messages: [{ sender: 'ai', text: 'Xin chào. Tôi có thể giúp gì cho bạn?' }] });
-                    currentSessionId = newId;
-                } else if (currentSessionId === id) {
-                    currentSessionId = chatSessions[chatSessions.length - 1].id;
+                sessionStorage.setItem('aegis_sessions', JSON.stringify(chatSessions));
+                
+                let currentSessionId = sessionStorage.getItem('aegis_current_session');
+                if (currentSessionId === id) {
+                    // Nếu đang xem cái bị xóa thì chuyển về trang trắng mượt mà
+                    sessionStorage.removeItem('aegis_current_session');
+                    window.history.pushState({}, document.title, window.location.pathname);
+                    renderChat();
                 }
-                saveToStorage();
                 renderSessionList();
-                renderChat();
             }
         }
 
         window.switchSession = function(id) {
-            currentSessionId = id;
-            saveToStorage();
+            sessionStorage.setItem('aegis_current_session', id);
             window.history.pushState({}, document.title, window.location.pathname);
             renderSessionList();
             renderChat();
@@ -383,8 +373,9 @@
 
         function renderSessionList() {
             sessionListEl.innerHTML = '';
+            let currentSessionId = sessionStorage.getItem('aegis_current_session');
             
-            // Sắp xếp: Ghim ưu tiên lên đầu, sau đó mới đến mới nhất
+            // Sắp xếp: Ghim lên đầu, sau đó mới nhất lên trên
             let sortedSessions = [...chatSessions].sort((a, b) => {
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
@@ -395,7 +386,8 @@
                 const div = document.createElement('div');
                 div.className = `session-item ${session.id === currentSessionId ? 'active' : ''}`;
                 
-                let pinText = session.pinned ? '<span style="color:#f59e0b; font-weight:bold; margin-right:4px;">[Ghim]</span>' : '';
+                // Dùng ký tự biểu tượng 📌 để hiển thị Ghim
+                let pinText = session.pinned ? '<span style="color:#f59e0b; margin-right:4px;">📌</span>' : '';
 
                 div.innerHTML = `
                     <div class="session-item-left" onclick="switchSession('${session.id}')" title="${session.title}">
@@ -406,7 +398,7 @@
                         <button class="session-options-btn" onclick="toggleDropdown(event, '${session.id}')">&#8942;</button>
                         <div class="session-dropdown" id="dropdown-${session.id}">
                             <div class="dropdown-item" onclick="shareSession(event, '${session.id}')">Chia sẻ</div>
-                            <div class="dropdown-item" onclick="pinSession(event, '${session.id}')">${session.pinned ? 'Bỏ ghim' : 'Ghim'}</div>
+                            <div class="dropdown-item" onclick="pinSession(event, '${session.id}')">${session.pinned ? '📌 Bỏ ghim' : '📌 Ghim'}</div>
                             <div class="dropdown-item" onclick="renameSession(event, '${session.id}')">Đổi tên</div>
                             <div class="dropdown-item text-danger" onclick="deleteSession(event, '${session.id}')">Xóa</div>
                         </div>
@@ -418,10 +410,19 @@
 
         function renderChat() {
             chatHistoryEl.innerHTML = '';
+            let currentSessionId = sessionStorage.getItem('aegis_current_session');
             const curSession = chatSessions.find(s => s.id === currentSessionId);
-            if (!curSession) return;
+            
+            let messagesToRender = [];
+            
+            if (curSession) {
+                messagesToRender = curSession.messages;
+            } else {
+                // Màn hình trắng tinh lúc mới vào hoặc ấn Tạo mới
+                messagesToRender = [{ sender: 'ai', text: 'Xin chào Quản trị viên. Tôi là Aegis, AI giám sát độc quyền của hệ thống Server Health Monitoring. Hiện tại các luồng dữ liệu đang được theo dõi sát sao. Tôi có thể giúp gì cho bạn?' }];
+            }
 
-            curSession.messages.forEach(msg => {
+            messagesToRender.forEach(msg => {
                 const row = document.createElement('div');
                 row.className = `msg-row ${msg.sender}`;
                 
@@ -438,14 +439,9 @@
             chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
         }
 
+        // TẠO MỚI MƯỢT MÀ KHÔNG CẦN RELOAD TRANG
         document.getElementById('btn-new-chat').onclick = () => {
-            const newId = generateId();
-            chatSessions.push({
-                id: newId, title: 'Đoạn chat mới', pinned: false,
-                messages: [{ sender: 'ai', text: 'Aegis đã sẵn sàng. Bạn muốn phân tích dữ liệu phần cứng nào tiếp theo?' }]
-            });
-            currentSessionId = newId;
-            saveToStorage();
+            sessionStorage.removeItem('aegis_current_session');
             window.history.pushState({}, document.title, window.location.pathname);
             renderSessionList();
             renderChat();
