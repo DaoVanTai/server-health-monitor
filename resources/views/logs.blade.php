@@ -25,11 +25,10 @@
         h1 { color: var(--neon-blue); letter-spacing: 2px; text-transform: uppercase; margin-top: 0; display: flex; justify-content: space-between; align-items: center;}
         
         .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; margin-bottom: 25px; }
-        
         .analytics-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 25px; }
         @media (max-width: 1200px) { .analytics-grid { grid-template-columns: 1fr; } }
 
-        /* --- BỘ LỌC CÓ HIỆU ỨNG NỔI --- */
+        /* Filter Bar */
         .filter-bar { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid #1f2937; align-items: center;}
         .filter-input { background: #0b1120; border: 1px solid #374151; color: white; padding: 10px 15px; border-radius: 6px; outline: none; transition: all 0.3s ease; }
         .filter-input:hover { border-color: var(--neon-blue); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.25); transform: translateY(-2px); cursor: pointer; }
@@ -60,12 +59,11 @@
         .badge-warning { color: var(--neon-yellow); border: 1px solid var(--neon-yellow); } 
         .badge-info { color: var(--neon-blue); border: 1px solid var(--neon-blue); } 
 
-        /* --- CSS MỚI: BỘ ĐIỀU HƯỚNG NGÀY CHUYÊN NGHIỆP --- */
-        .day-navigator { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 25px; padding: 15px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid var(--border-color); }
-        .page-btn { background: #1f2937; color: var(--text-main); padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; border: 1px solid #374151; }
-        .page-btn:hover:not(.disabled) { background: var(--neon-blue); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); transform: translateY(-2px); }
-        .page-btn.disabled { opacity: 0.5; cursor: not-allowed; background: #0b1120; border-color: #1f2937; color: #6b7280; }
-        .current-day-badge { text-align: center; color: var(--neon-blue); font-size: 16px; padding: 0 20px; }
+        /* --- CSS MỚI: BẢNG TỔNG KẾT CUỐI TRANG --- */
+        .summary-footer { margin-top: 25px; padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border: 1px dashed var(--neon-blue); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .summary-title { font-size: 16px; color: white; display: flex; align-items: center; gap: 10px; }
+        .summary-stats { display: flex; gap: 15px; align-items: center; }
+        .stat-box { background: var(--bg-main); padding: 8px 15px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -125,64 +123,86 @@
                     <option value="info" {{ request('level') == 'info' ? 'selected' : '' }}>🔵 Hệ thống (System)</option>
                 </select>
 
-                <input type="date" name="view_date" class="filter-input" value="{{ $viewDate }}" title="Chọn ngày xem Log" onchange="this.form.submit()">
+                <input type="date" name="from_date" class="filter-input" value="{{ $fromDate }}" title="Từ ngày">
+                <span style="color: var(--text-muted);">-</span>
+                <input type="date" name="to_date" class="filter-input" value="{{ $toDate }}" title="Đến ngày">
 
                 <button type="submit" class="btn-action"><i class="fas fa-search"></i> LỌC DỮ LIỆU</button>
-                <a href="{{ route('logs.index') }}" class="btn-action btn-clear" title="Xóa bộ lọc về Hôm nay"><i class="fas fa-redo"></i> LÀM MỚI</a>
+                <a href="{{ route('logs.index') }}" class="btn-action btn-clear" title="Xóa toàn bộ bộ lọc"><i class="fas fa-redo"></i> LÀM MỚI</a>
             </form>
 
-            <table class="log-table">
-                <thead>
-                    <tr>
-                        <th>THỜI GIAN (TIME)</th>
-                        <th>LOẠI (TYPE)</th>
-                        <th>NGUỒN (SOURCE)</th>
-                        <th>NỘI DUNG (MESSAGE)</th>
-                        <th>IP ADDRESS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($logs as $log)
-                    <tr>
-                        <td style="color: var(--text-muted); font-size: 13px;">{{ $log->created_at->format('H:i:s') }}</td>
-                        <td>
-                            <span class="badge badge-{{ $log->level }}">
-                                @if($log->level == 'danger') Attack
-                                @elseif($log->level == 'warning') Alert
-                                @else System
-                                @endif
-                            </span>
-                        </td>
-                        <td style="color: #cbd5e1;">{{ $log->source }}</td>
-                        <td>{{ Str::limit($log->message, 80) }}</td>
-                        <td style="color: var(--neon-blue); font-family: monospace;">{{ $log->ip_address ?? 'N/A' }}</td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fas fa-folder-open" style="font-size: 30px; display:block; margin-bottom: 10px;"></i>Hệ thống an toàn. Không có sự kiện nào trong ngày này.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-            
-            <div class="day-navigator">
-                <a href="{{ request()->fullUrlWithQuery(['view_date' => $prevDate]) }}" class="page-btn">
-                    <i class="fas fa-chevron-left"></i> Tua về: {{ \Carbon\Carbon::parse($prevDate)->format('d/m') }}
-                </a>
-
-                <div class="current-day-badge">
-                    <i class="fas fa-calendar-alt"></i> Ngày đang xem: <strong style="color: white; font-size: 18px;">{{ \Carbon\Carbon::parse($viewDate)->format('d/m/Y') }}</strong>
-                    <span style="display: block; font-size: 13px; color: var(--text-muted); margin-top: 5px;">Ghi nhận: {{ $logs->count() }} sự kiện</span>
-                </div>
-
-                @if(!$isToday)
-                <a href="{{ request()->fullUrlWithQuery(['view_date' => $nextDate]) }}" class="page-btn">
-                    Tới ngày: {{ \Carbon\Carbon::parse($nextDate)->format('d/m') }} <i class="fas fa-chevron-right"></i>
-                </a>
-                @else
-                <span class="page-btn disabled" title="Không thể xem tương lai">
-                    Chưa có ngày mai <i class="fas fa-ban"></i>
-                </span>
-                @endif
+            <div class="custom-scrollbar" style="max-height: 600px; overflow-y: auto;">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">THỜI GIAN (TIME)</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">LOẠI (TYPE)</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">NGUỒN (SOURCE)</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">NỘI DUNG (MESSAGE)</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">IP ADDRESS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($logs as $log)
+                        <tr>
+                            <td style="color: var(--text-muted); font-size: 13px;">{{ $log->created_at->format('H:i:s d/m/Y') }}</td>
+                            <td>
+                                <span class="badge badge-{{ $log->level }}">
+                                    @if($log->level == 'danger') Attack
+                                    @elseif($log->level == 'warning') Alert
+                                    @else System
+                                    @endif
+                                </span>
+                            </td>
+                            <td style="color: #cbd5e1;">{{ $log->source }}</td>
+                            <td>{{ Str::limit($log->message, 80) }}</td>
+                            <td style="color: var(--neon-blue); font-family: monospace;">{{ $log->ip_address ?? 'N/A' }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fas fa-check-circle" style="font-size: 30px; display:block; margin-bottom: 10px; color: #10b981;"></i>Không tìm thấy sự kiện nào trong khoảng thời gian này.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
+            
+            @php
+                $displayFrom = $fromDate ? \Carbon\Carbon::parse($fromDate)->format('d/m/Y') : 'Khởi tạo hệ thống';
+                $displayTo = $toDate ? \Carbon\Carbon::parse($toDate)->format('d/m/Y') : 'Hiện tại';
+                
+                $countDanger = $logs->where('level', 'danger')->count();
+                $countWarning = $logs->where('level', 'warning')->count();
+                $countInfo = $logs->where('level', 'info')->count();
+            @endphp
+            
+            <div class="summary-footer">
+                <div class="summary-title">
+                    <i class="fas fa-search-location" style="color: var(--neon-blue); font-size: 20px;"></i>
+                    <span>Đang hiển thị bản ghi từ <strong>{{ $displayFrom }}</strong> đến <strong>{{ $displayTo }}</strong></span>
+                </div>
+                
+                <div class="summary-stats">
+                    <div class="stat-box" style="border-color: var(--neon-blue);">
+                        <span style="color: var(--text-muted);">Tổng số sự kiện:</span>
+                        <strong style="color: white; font-size: 16px;">{{ $logs->count() }}</strong>
+                    </div>
+                    
+                    <div class="stat-box" style="border-left: 3px solid var(--neon-red);">
+                        <strong style="color: var(--neon-red);">{{ $countDanger }}</strong>
+                        <span style="color: var(--text-muted); font-size: 12px;">Nguy hiểm</span>
+                    </div>
+                    
+                    <div class="stat-box" style="border-left: 3px solid var(--neon-yellow);">
+                        <strong style="color: var(--neon-yellow);">{{ $countWarning }}</strong>
+                        <span style="color: var(--text-muted); font-size: 12px;">Cảnh báo</span>
+                    </div>
+                    
+                    <div class="stat-box" style="border-left: 3px solid var(--neon-blue);">
+                        <strong style="color: var(--neon-blue);">{{ $countInfo }}</strong>
+                        <span style="color: var(--text-muted); font-size: 12px;">Thông tin</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 

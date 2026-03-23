@@ -28,15 +28,18 @@ class SystemLogController extends Controller
         }
 
         // ==========================================
-        // 2. LOGIC MỚI: 1 TRANG = 1 NGÀY
+        // 2. KHÔI PHỤC BỘ LỌC KHOẢNG THỜI GIAN
         // ==========================================
-        // Lấy ngày hiện tại đang xem từ URL (Mặc định là Hôm nay)
-        $viewDate = $request->input('view_date', Carbon::today()->format('Y-m-d'));
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
 
-        // Lọc toàn bộ log chỉ trong ngày đó
-        $query->whereDate('created_at', $viewDate);
+        if ($fromDate && $toDate) {
+            $from = $fromDate . ' 00:00:00';
+            $to = $toDate . ' 23:59:59';
+            $query->whereBetween('created_at', [$from, $to]);
+        }
 
-        // 3. THỐNG KÊ ANALYTICS CẤP CAO (Thống kê cho toàn hệ thống)
+        // 3. THỐNG KÊ ANALYTICS CẤP CAO (Cho biểu đồ và tổng quan)
         $stats = [
             'total' => SystemLog::count(),
             'attack' => SystemLog::where('level', 'danger')->count(), 
@@ -65,18 +68,12 @@ class SystemLogController extends Controller
             $chartAlert[] = SystemLog::whereDate('created_at', $date)->where('level', 'warning')->count();
         }
 
-        // 6. LẤY LOGS CHO NGÀY ĐANG XEM (Dùng get thay vì paginate)
+        // 6. LẤY TOÀN BỘ LOGS THEO ĐIỀU KIỆN LỌC (Không phân trang)
         $logs = $query->orderBy('created_at', 'desc')->get();
-
-        // 7. TÍNH TOÁN NGÀY TRƯỚC VÀ NGÀY SAU ĐỂ LÀM NÚT NEXT/PREV
-        $currentDateObj = Carbon::parse($viewDate);
-        $prevDate = $currentDateObj->copy()->subDay()->format('Y-m-d');
-        $nextDate = $currentDateObj->copy()->addDay()->format('Y-m-d');
-        $isToday = $currentDateObj->isToday();
 
         return view('logs', compact(
             'logs', 'stats', 'topIps', 'chartLabels', 'chartAttack', 'chartAlert', 
-            'viewDate', 'prevDate', 'nextDate', 'isToday'
+            'fromDate', 'toDate'
         ));
     }
 }
