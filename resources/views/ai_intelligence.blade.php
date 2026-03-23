@@ -9,6 +9,7 @@
         :root {
             --bg-main: #020617; 
             --bg-card: #0f172a;
+            --bg-sidebar: #0b1120;
             --neon-cyan: #22d3ee;
             --neon-purple: #a855f7;
             --text-main: #f3f4f6;
@@ -17,13 +18,12 @@
         }
         body { background: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; min-height: 100vh; overflow-x: hidden; }
         
-        /* --- TÙY CHỈNH THANH CUỘN (SCROLLBAR) ĐẸP MẮT --- */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
 
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR CHÍNH MÀN HÌNH --- */
         .sidebar { 
             width: 70px; background-color: #020617; border-right: 1px solid var(--border-color); 
             display: flex; flex-direction: column; padding: 20px 0; position: fixed; 
@@ -42,10 +42,11 @@
         .sidebar-item.active { color: var(--neon-cyan); border-left: 3px solid var(--neon-cyan); background: rgba(34, 211, 238, 0.05); }
         .sidebar-item:hover { color: var(--text-main); }
 
-        /* --- CONTENT --- */
         .main-content { margin-left: 70px; padding: 40px; width: 100%; box-sizing: border-box; }
         .ai-header { color: var(--neon-cyan); font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; text-shadow: 0 0 10px rgba(34, 211, 238, 0.3); }
-        .ai-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px; margin-top: 20px; align-items: start; }
+        
+        /* Cập nhật lại Grid để nhường chỗ cho History */
+        .ai-grid { display: grid; grid-template-columns: 0.8fr 1.5fr; gap: 25px; margin-top: 20px; align-items: start; }
         
         /* --- TERMINAL --- */
         .ai-terminal { 
@@ -62,17 +63,41 @@
         .terminal-line { margin-bottom: 12px; line-height: 1.5; font-size: 14px; position: relative; z-index: 1; }
         .line-success { color: #22c55e; }
         .line-info { color: var(--text-muted); }
-        .line-warning { color: #f59e0b; }
         .line-ai { color: var(--neon-cyan); }
         .scan-line { width: 100%; height: 2px; background: var(--neon-cyan); opacity: 0.3; position: absolute; top: 0; left: 0; animation: scan 4s linear infinite; z-index: 2; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        /* --- CHAT INTERFACE MỚI (CÓ LỊCH SỬ) --- */
-        .chat-container { 
-            background: var(--bg-card); border: 1px solid var(--border-color); 
-            border-radius: 12px; display: flex; flex-direction: column; 
-            height: 550px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        /* --- CHAT WRAPPER (CHỨA CẢ LỊCH SỬ & KHUNG CHAT) --- */
+        .chat-wrapper { 
+            display: flex; height: 550px; background: var(--bg-card); 
+            border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
+
+        /* --- LỊCH SỬ CHAT (SIDEBAR BÊN TRONG) --- */
+        .chat-history-sidebar {
+            width: 220px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+        }
+        .new-chat-btn-container { padding: 15px; border-bottom: 1px solid var(--border-color); }
+        .btn-new-chat {
+            width: 100%; padding: 10px; background: transparent; border: 1px solid var(--neon-cyan); 
+            color: var(--neon-cyan); border-radius: 6px; cursor: pointer; transition: 0.3s;
+            font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-new-chat:hover { background: rgba(34, 211, 238, 0.1); box-shadow: 0 0 10px rgba(34, 211, 238, 0.2); }
+        
+        .session-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+        .session-item {
+            padding: 10px 12px; color: var(--text-muted); cursor: pointer; border-radius: 6px;
+            font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            transition: 0.2s; border-left: 3px solid transparent;
+        }
+        .session-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .session-item.active { background: rgba(34, 211, 238, 0.08); color: var(--neon-cyan); border-left: 3px solid var(--neon-cyan); }
+
+        /* --- KHUNG CHAT CHÍNH --- */
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-card); }
         .chat-header { 
             padding: 15px 20px; background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border-color); 
             display: flex; align-items: center; justify-content: space-between;
@@ -87,7 +112,7 @@
         .msg-row.user { justify-content: flex-end; }
         .msg-row.ai { justify-content: flex-start; align-items: flex-end; gap: 12px; }
         
-        .msg-bubble { max-width: 80%; padding: 12px 18px; font-size: 14px; line-height: 1.6; }
+        .msg-bubble { max-width: 80%; padding: 12px 18px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
         .msg-bubble.user { 
             background: linear-gradient(135deg, var(--neon-cyan), #0284c7); color: white; 
             border-radius: 16px 16px 2px 16px; box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2); 
@@ -104,7 +129,6 @@
             font-size: 16px; flex-shrink: 0; box-shadow: 0 0 10px rgba(168, 85, 247, 0.5); color: white;
         }
 
-        /* --- Ô NHẬP LỆNH & ICON WRAPPER --- */
         .chat-input-area { padding: 15px 20px; background: rgba(0,0,0,0.3); border-top: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; }
         .chat-input { 
             flex: 1; background: #020617; border: 1px solid var(--border-color); 
@@ -154,41 +178,53 @@
         <div class="ai-grid">
             <div class="ai-terminal" id="terminal">
                 <div class="scan-line"></div>
-                <div class="terminal-line line-success">[SYSTEM] Aegis Neural Core v4.0 (Gemini) active...</div>
+                <div class="terminal-line line-success">[SYSTEM] Aegis Neural Core v4.0 (Realtime) active...</div>
                 <div id="dynamic-logs"></div>
             </div>
 
-            <div class="chat-container">
-                <div class="chat-header">
-                    <div class="chat-title"><i class="fas fa-comment-alt-code"></i> Aegis Secure Console</div>
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted);">
-                        <div class="status-dot"></div> AI Online
+            <div class="chat-wrapper">
+                <div class="chat-history-sidebar">
+                    <div class="new-chat-btn-container">
+                        <button class="btn-new-chat" id="btn-new-chat">
+                            <i class="fas fa-plus"></i> Đoạn chat mới
+                        </button>
                     </div>
+                    <div class="session-list" id="session-list">
+                        </div>
                 </div>
 
-                <div class="chat-history" id="chat-history"></div>
+                <div class="chat-main">
+                    <div class="chat-header">
+                        <div class="chat-title"><i class="fas fa-comment-alt-code"></i> Aegis Secure Console</div>
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted);">
+                            <div class="status-dot"></div> AI Online
+                        </div>
+                    </div>
 
-                <form action="{{ route('ai.index') }}" method="GET" class="chat-input-area">
-                    <input type="text" name="ai_command" class="chat-input" placeholder="Nhập lệnh phân tích ..." required autocomplete="off">
-                    
-                    <button type="submit" class="icon-wrapper-btn">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </form>
+                    <div class="chat-history" id="chat-history">
+                        </div>
+
+                    <form action="{{ route('ai.index') }}" method="GET" class="chat-input-area">
+                        <input type="text" name="ai_command" class="chat-input" placeholder="Nhập lệnh phân tích (VD: tình trạng hệ thống, mạng...)" required autocomplete="off">
+                        <button type="submit" class="icon-wrapper-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </main>
 
     <script>
-        // --- LOGIC TERMINAL ---
+        // --- LOGIC TERMINAL HIỆU ỨNG GÕ CHỮ ---
         const dynamicLogs = [
-            { type: 'line-success', text: "[OK] Đã xác thực kết nối qua API Key." },
+            { type: 'line-success', text: "[OK] Đã thiết lập luồng trực tiếp tới Database." },
             @if(isset($insights))
                 @foreach($insights as $insight)
                 { type: 'line-ai', text: {!! json_encode($insight) !!} },
                 @endforeach
             @endif
-            { type: 'line-info', text: "> Hệ thống đang phân tích các gói tin nền..." }
+            { type: 'line-info', text: "> Hệ thống sẵn sàng phản hồi thông số Realtime..." }
         ];
         let index = 0;
         const logContainer = document.getElementById('dynamic-logs');
@@ -205,35 +241,92 @@
         }
         setTimeout(printLog, 500);
 
-        // --- LOGIC LƯU TRỮ VÀ HIỂN THỊ LỊCH SỬ CHAT (SESSION STORAGE) ---
-        const chatHistoryEl = document.getElementById('chat-history');
-        
-        // Khởi tạo lịch sử nếu chưa có
-        let chatHistory = JSON.parse(sessionStorage.getItem('aegis_chat')) || [
-            { sender: 'ai', text: 'Xin chào! Tôi là trí tuệ nhân tạo Aegis. Tôi đã sẵn sàng phân tích dữ liệu Server của bạn.' }
-        ];
 
-        // Nếu vừa gửi lệnh form, lấy dữ liệu từ Server đẩy vào mảng
+        // --- LOGIC LƯU TRỮ NHIỀU PHIÊN CHAT (SESSIONS) ---
+        let chatSessions = JSON.parse(sessionStorage.getItem('aegis_sessions')) || [];
+        let currentSessionId = sessionStorage.getItem('aegis_current_session');
+
+        // Hàm tạo ID duy nhất
+        function generateId() { return Date.now().toString(); }
+
+        // Khởi tạo phiên đầu tiên nếu bộ nhớ trống
+        if (chatSessions.length === 0) {
+            const firstId = generateId();
+            chatSessions.push({
+                id: firstId,
+                title: 'Trò chuyện khởi động',
+                messages: [{ sender: 'ai', text: 'Xin chào Quản trị viên. Tôi là Aegis, AI giám sát độc quyền của hệ thống Server Health Monitoring. Hiện tại các luồng dữ liệu đang được theo dõi sát sao. Tôi có thể giúp gì cho bạn?' }]
+            });
+            currentSessionId = firstId;
+            saveToStorage();
+        } else if (!currentSessionId || !chatSessions.find(s => s.id === currentSessionId)) {
+            currentSessionId = chatSessions[0].id;
+        }
+
+        function saveToStorage() {
+            sessionStorage.setItem('aegis_sessions', JSON.stringify(chatSessions));
+            sessionStorage.setItem('aegis_current_session', currentSessionId);
+        }
+
+        // Bắt dữ liệu trả về từ Controller khi ấn Gửi
         @if(request()->has('ai_command'))
             const userCmd = {!! json_encode(request()->get('ai_command')) !!};
             const aiResp = {!! json_encode($aiResponse ?? '') !!};
             
-            // Chống nhân bản (duplicate) khi nhấn F5
-            const lastMsg = chatHistory[chatHistory.length - 1];
+            let curSession = chatSessions.find(s => s.id === currentSessionId);
+            if(!curSession) {
+                curSession = chatSessions[0];
+                currentSessionId = curSession.id;
+            }
+
+            // Tự động đặt tên cho lịch sử chat dựa vào câu hỏi đầu tiên
+            if (curSession.messages.length <= 1) {
+                curSession.title = userCmd.length > 20 ? userCmd.substring(0, 20) + '...' : userCmd;
+            }
+
+            // Tránh bị duplicate khi F5 trình duyệt
+            const lastMsg = curSession.messages[curSession.messages.length - 1];
             if (!lastMsg || lastMsg.text !== aiResp) {
-                chatHistory.push({ sender: 'user', text: userCmd });
-                chatHistory.push({ sender: 'ai', text: aiResp });
-                
-                // Giữ lịch sử không quá dài (Tối đa 20 tin nhắn)
-                if(chatHistory.length > 20) chatHistory = chatHistory.slice(chatHistory.length - 20);
-                sessionStorage.setItem('aegis_chat', JSON.stringify(chatHistory));
+                curSession.messages.push({ sender: 'user', text: userCmd });
+                curSession.messages.push({ sender: 'ai', text: aiResp });
+                saveToStorage();
             }
         @endif
 
-        // Hàm Render giao diện chat
+        const chatHistoryEl = document.getElementById('chat-history');
+        const sessionListEl = document.getElementById('session-list');
+
+        // Hàm vẽ lại danh sách bên trái
+        function renderSessionList() {
+            sessionListEl.innerHTML = '';
+            // Render ngược (mới nhất lên đầu)
+            [...chatSessions].reverse().forEach(session => {
+                const div = document.createElement('div');
+                div.className = `session-item ${session.id === currentSessionId ? 'active' : ''}`;
+                div.innerHTML = `<i class="fas fa-message"></i> ${session.title}`;
+                
+                // Khi click vào 1 lịch sử cũ
+                div.onclick = () => {
+                    currentSessionId = session.id;
+                    saveToStorage();
+                    
+                    // Làm sạch URL để không bị dính lệnh cũ, tránh load lại bị gửi đúp
+                    window.history.pushState({}, document.title, window.location.pathname);
+                    
+                    renderSessionList();
+                    renderChat();
+                };
+                sessionListEl.appendChild(div);
+            });
+        }
+
+        // Hàm vẽ khung chat bên phải
         function renderChat() {
             chatHistoryEl.innerHTML = '';
-            chatHistory.forEach(msg => {
+            const curSession = chatSessions.find(s => s.id === currentSessionId);
+            if (!curSession) return;
+
+            curSession.messages.forEach(msg => {
                 const row = document.createElement('div');
                 row.className = `msg-row ${msg.sender}`;
                 
@@ -247,92 +340,54 @@
                 }
                 chatHistoryEl.appendChild(row);
             });
-
-            // Nếu có dữ liệu Biểu đồ (từ Controller gửi sang) thì vẽ tiếp vào tin nhắn cuối
-            @if(!empty($chartData))
-                const chartRow = document.createElement('div');
-                chartRow.className = 'msg-row ai';
-                chartRow.innerHTML = `
-                    <div class="ai-avatar" style="visibility: hidden;"></div>
-                    <div class="msg-bubble ai" style="width: 100%; max-width: 85%; padding: 15px;">
-                        <div style="height: 220px; width: 100%;">
-                            <canvas id="aegisChart"></canvas>
-                        </div>
-                    </div>
-                `;
-                chatHistoryEl.appendChild(chartRow);
-            @endif
-
-            // Tự động cuộn xuống cuối cùng
             chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
         }
 
-        // Gọi hàm hiển thị
+        // Sự kiện nút "Đoạn chat mới"
+        document.getElementById('btn-new-chat').onclick = () => {
+            const newId = generateId();
+            chatSessions.push({
+                id: newId,
+                title: 'Đoạn chat mới',
+                messages: [{ sender: 'ai', text: 'Aegis đã sẵn sàng. Bạn muốn phân tích dữ liệu phần cứng nào tiếp theo?' }]
+            });
+            currentSessionId = newId;
+            saveToStorage();
+            
+            window.history.pushState({}, document.title, window.location.pathname);
+            
+            renderSessionList();
+            renderChat();
+        };
+
+        // Chạy lần đầu
+        renderSessionList();
         renderChat();
 
-        // --- LOGIC VẼ BIỂU ĐỒ VÀO KHUNG CHAT ---
-        @if(!empty($chartData))
-            const ctx = document.getElementById('aegisChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: {!! json_encode($chartData['labels']) !!},
-                    datasets: [{
-                        label: "{!! $chartData['label'] !!}",
-                        data: {!! json_encode($chartData['values']) !!},
-                        borderColor: "{!! $chartData['color'] !!}",
-                        backgroundColor: "rgba(34, 211, 238, 0.15)",
-                        borderWidth: 2,
-                        tension: 0.4, 
-                        pointRadius: 3, 
-                        pointBackgroundColor: "{!! $chartData['color'] !!}"
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { color: "#1e293b", drawBorder: false } },
-                        y: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { color: "#1e293b", drawBorder: false }, beginAtZero: true, max: 100 }
-                    },
-                    plugins: { legend: { labels: { color: "#f3f4f6", font: { size: 13 } } } }
-                }
-            });
-        @endif
-    </script>
-    <script>
-        // --- HIỆU ỨNG CHỐNG LAG (UX OPTIMIZATION) ---
+        // --- HIỆU ỨNG CHỐNG LAG KHI GỬI ---
         document.querySelector('.chat-input-area').addEventListener('submit', function(e) {
             const btn = this.querySelector('.icon-wrapper-btn');
             const input = this.querySelector('.chat-input');
             const userText = input.value.trim();
 
             if(userText !== "") {
-                // 1. Đổi nút Gửi thành trạng thái Loading xoay xoay
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 btn.style.opacity = '0.7';
                 btn.style.pointerEvents = 'none';
-
-                // 2. Tạm thời khóa ô nhập liệu
                 input.readOnly = true;
 
-                // 3. In ngay lập tức câu hỏi của bạn lên khung chat
-                const chatHistoryEl = document.getElementById('chat-history');
                 chatHistoryEl.innerHTML += `
                     <div class="msg-row user">
                         <div class="msg-bubble user">${userText}</div>
                     </div>`;
 
-                // 4. In biểu tượng AI đang suy nghĩ
                 chatHistoryEl.innerHTML += `
                     <div class="msg-row ai" id="ai-thinking-indicator">
                         <div class="ai-avatar" style="background: #475569; box-shadow: none;"><i class="fas fa-robot text-gray-400"></i></div>
                         <div class="msg-bubble ai" style="color: var(--neon-cyan); font-style: italic;">
-                            <i class="fas fa-satellite-dish fa-fade"></i> Đang phân tích dữ liệu qua Neural Core...
+                            <i class="fas fa-satellite-dish fa-fade"></i> Đang đọc số liệu Realtime từ Database...
                         </div>
                     </div>`;
-
-                // 5. Cuộn xuống cuối cùng để xem dòng chữ đang suy nghĩ
                 chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
             }
         });
