@@ -33,8 +33,7 @@
         .sidebar:hover { width: 220px; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
         .sidebar-item { 
             width: 100%; padding: 15px 0; display: flex; align-items: center; 
-            color: var(--text-muted); text-decoration: none; transition: all 0.2s; 
-            border-left: 3px solid transparent; 
+            color: var(--text-muted); text-decoration: none; transition: all 0.2s; border-left: 3px solid transparent; 
         }
         .sidebar-icon-wrapper { min-width: 70px; display: flex; justify-content: center; align-items: center; font-size: 20px; }
         .sidebar-item span { opacity: 0; transform: translateX(-10px); transition: all 0.3s; font-size: 14px; font-weight: 500; }
@@ -44,16 +43,13 @@
 
         .main-content { margin-left: 70px; padding: 40px; width: 100%; box-sizing: border-box; }
         .ai-header { color: var(--neon-cyan); font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; text-shadow: 0 0 10px rgba(34, 211, 238, 0.3); }
-        
-        /* Cập nhật lại Grid để nhường chỗ cho History */
         .ai-grid { display: grid; grid-template-columns: 0.8fr 1.5fr; gap: 25px; margin-top: 20px; align-items: start; }
         
         /* --- TERMINAL --- */
         .ai-terminal { 
             background: #000; border: 1px solid var(--border-color); border-radius: 12px; 
             padding: 25px; font-family: 'Courier New', monospace; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,1); height: 550px; position: relative;
-            overflow-y: auto;
+            box-shadow: inset 0 0 20px rgba(0,0,0,1); height: 550px; position: relative; overflow-y: auto;
         }
         .ai-terminal::before {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -67,37 +63,66 @@
         .scan-line { width: 100%; height: 2px; background: var(--neon-cyan); opacity: 0.3; position: absolute; top: 0; left: 0; animation: scan 4s linear infinite; z-index: 2; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        /* --- CHAT WRAPPER (CHỨA CẢ LỊCH SỬ & KHUNG CHAT) --- */
+        /* --- CHAT WRAPPER --- */
         .chat-wrapper { 
             display: flex; height: 550px; background: var(--bg-card); 
             border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
         }
 
-        /* --- LỊCH SỬ CHAT (SIDEBAR BÊN TRONG) --- */
+        /* --- LỊCH SỬ CHAT (CÓ HIỆU ỨNG MỞ RỘNG KHI HOVER) --- */
         .chat-history-sidebar {
-            width: 220px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
-            display: flex; flex-direction: column;
+            width: 55px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; z-index: 10;
         }
-        .new-chat-btn-container { padding: 15px; border-bottom: 1px solid var(--border-color); }
+        .chat-history-sidebar:hover { width: 250px; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        
+        .sidebar-text-chat { opacity: 0; visibility: hidden; transition: all 0.2s; white-space: nowrap; margin-left: 10px; }
+        .chat-history-sidebar:hover .sidebar-text-chat { opacity: 1; visibility: visible; }
+
+        .new-chat-btn-container { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: center; }
         .btn-new-chat {
             width: 100%; padding: 10px; background: transparent; border: 1px solid var(--neon-cyan); 
             color: var(--neon-cyan); border-radius: 6px; cursor: pointer; transition: 0.3s;
-            font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px;
+            font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center;
         }
         .btn-new-chat:hover { background: rgba(34, 211, 238, 0.1); box-shadow: 0 0 10px rgba(34, 211, 238, 0.2); }
         
-        .session-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+        .session-list { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+        
         .session-item {
-            padding: 10px 12px; color: var(--text-muted); cursor: pointer; border-radius: 6px;
-            font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            transition: 0.2s; border-left: 3px solid transparent;
+            display: flex; align-items: center; justify-content: space-between; padding: 12px 10px;
+            color: var(--text-muted); border-radius: 6px; border-left: 3px solid transparent; transition: 0.2s;
         }
         .session-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
         .session-item.active { background: rgba(34, 211, 238, 0.08); color: var(--neon-cyan); border-left: 3px solid var(--neon-cyan); }
+        
+        .session-item-left { display: flex; align-items: center; flex: 1; overflow: hidden; cursor: pointer; }
+        
+        /* 3-DOTS MENU */
+        .session-options { position: relative; }
+        .session-options-btn { 
+            background: transparent; border: none; color: var(--text-muted); 
+            cursor: pointer; font-size: 16px; display: none; padding: 0 5px; font-weight: bold;
+        }
+        .session-options-btn:hover { color: var(--neon-cyan); }
+        .chat-history-sidebar:hover .session-options-btn { display: block; }
+        
+        .session-dropdown {
+            display: none; position: absolute; right: 0; top: 25px;
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 6px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 100;
+            flex-direction: column; min-width: 120px; overflow: hidden;
+        }
+        .session-dropdown.show { display: flex; }
+        .dropdown-item { padding: 10px 15px; font-size: 13px; cursor: pointer; color: var(--text-main); white-space: nowrap; }
+        .dropdown-item:hover { background: rgba(34, 211, 238, 0.1); color: var(--neon-cyan); }
+        .dropdown-item.text-danger { color: #ef4444; }
+        .dropdown-item.text-danger:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
         /* --- KHUNG CHAT CHÍNH --- */
-        .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-card); }
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-card); min-width: 0; }
         .chat-header { 
             padding: 15px 20px; background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border-color); 
             display: flex; align-items: center; justify-content: space-between;
@@ -185,8 +210,8 @@
             <div class="chat-wrapper">
                 <div class="chat-history-sidebar">
                     <div class="new-chat-btn-container">
-                        <button class="btn-new-chat" id="btn-new-chat">
-                            <i class="fas fa-plus"></i> Đoạn chat mới
+                        <button class="btn-new-chat" id="btn-new-chat" title="Tạo mới">
+                            <i class="fas fa-plus"></i> <span class="sidebar-text-chat">Đoạn chat mới</span>
                         </button>
                     </div>
                     <div class="session-list" id="session-list">
@@ -201,8 +226,7 @@
                         </div>
                     </div>
 
-                    <div class="chat-history" id="chat-history">
-                        </div>
+                    <div class="chat-history" id="chat-history"></div>
 
                     <form action="{{ route('ai.index') }}" method="GET" class="chat-input-area">
                         <input type="text" name="ai_command" class="chat-input" placeholder="Nhập lệnh phân tích (VD: tình trạng hệ thống, mạng...)" required autocomplete="off">
@@ -241,20 +265,26 @@
         }
         setTimeout(printLog, 500);
 
+        // --- ĐÓNG MENU 3 CHẤM KHI CLICK RA NGOÀI ---
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.session-options')) {
+                document.querySelectorAll('.session-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
 
-        // --- LOGIC LƯU TRỮ NHIỀU PHIÊN CHAT (SESSIONS) ---
+        // --- LOGIC QUẢN LÝ LỊCH SỬ CHAT (MULTI-SESSIONS) ---
         let chatSessions = JSON.parse(sessionStorage.getItem('aegis_sessions')) || [];
         let currentSessionId = sessionStorage.getItem('aegis_current_session');
 
-        // Hàm tạo ID duy nhất
         function generateId() { return Date.now().toString(); }
 
-        // Khởi tạo phiên đầu tiên nếu bộ nhớ trống
+        // Khởi tạo nếu trống
         if (chatSessions.length === 0) {
             const firstId = generateId();
             chatSessions.push({
                 id: firstId,
                 title: 'Trò chuyện khởi động',
+                pinned: false,
                 messages: [{ sender: 'ai', text: 'Xin chào Quản trị viên. Tôi là Aegis, AI giám sát độc quyền của hệ thống Server Health Monitoring. Hiện tại các luồng dữ liệu đang được theo dõi sát sao. Tôi có thể giúp gì cho bạn?' }]
             });
             currentSessionId = firstId;
@@ -268,23 +298,17 @@
             sessionStorage.setItem('aegis_current_session', currentSessionId);
         }
 
-        // Bắt dữ liệu trả về từ Controller khi ấn Gửi
         @if(request()->has('ai_command'))
             const userCmd = {!! json_encode(request()->get('ai_command')) !!};
             const aiResp = {!! json_encode($aiResponse ?? '') !!};
             
             let curSession = chatSessions.find(s => s.id === currentSessionId);
-            if(!curSession) {
-                curSession = chatSessions[0];
-                currentSessionId = curSession.id;
-            }
+            if(!curSession) { curSession = chatSessions[0]; currentSessionId = curSession.id; }
 
-            // Tự động đặt tên cho lịch sử chat dựa vào câu hỏi đầu tiên
             if (curSession.messages.length <= 1) {
                 curSession.title = userCmd.length > 20 ? userCmd.substring(0, 20) + '...' : userCmd;
             }
 
-            // Tránh bị duplicate khi F5 trình duyệt
             const lastMsg = curSession.messages[curSession.messages.length - 1];
             if (!lastMsg || lastMsg.text !== aiResp) {
                 curSession.messages.push({ sender: 'user', text: userCmd });
@@ -296,31 +320,102 @@
         const chatHistoryEl = document.getElementById('chat-history');
         const sessionListEl = document.getElementById('session-list');
 
-        // Hàm vẽ lại danh sách bên trái
+        // Hàm xử lý Menu 3 chấm
+        window.toggleDropdown = function(e, id) {
+            e.stopPropagation();
+            document.querySelectorAll('.session-dropdown').forEach(d => {
+                if(d.id !== `dropdown-${id}`) d.classList.remove('show');
+            });
+            document.getElementById(`dropdown-${id}`).classList.toggle('show');
+        }
+
+        window.shareSession = function(e, id) {
+            e.stopPropagation();
+            alert('Thành công! Đã sao chép liên kết chia sẻ đoạn chat này vào khay nhớ tạm.');
+            document.getElementById(`dropdown-${id}`).classList.remove('show');
+        }
+
+        window.pinSession = function(e, id) {
+            e.stopPropagation();
+            let session = chatSessions.find(s => s.id === id);
+            if(session) session.pinned = !session.pinned;
+            saveToStorage();
+            renderSessionList();
+        }
+
+        window.renameSession = function(e, id) {
+            e.stopPropagation();
+            let session = chatSessions.find(s => s.id === id);
+            if(session) {
+                let newName = prompt('Nhập tên mới cho cuộc trò chuyện:', session.title);
+                if(newName !== null && newName.trim() !== '') {
+                    session.title = newName.trim();
+                    saveToStorage();
+                    renderSessionList();
+                }
+            }
+        }
+
+        window.deleteSession = function(e, id) {
+            e.stopPropagation();
+            if(confirm('Cảnh báo: Bạn có chắc chắn muốn xóa vĩnh viễn đoạn chat này không?')) {
+                chatSessions = chatSessions.filter(s => s.id !== id);
+                if(chatSessions.length === 0) {
+                    const newId = generateId();
+                    chatSessions.push({ id: newId, title: 'Đoạn chat mới', pinned: false, messages: [{ sender: 'ai', text: 'Xin chào. Tôi có thể giúp gì cho bạn?' }] });
+                    currentSessionId = newId;
+                } else if (currentSessionId === id) {
+                    currentSessionId = chatSessions[chatSessions.length - 1].id;
+                }
+                saveToStorage();
+                renderSessionList();
+                renderChat();
+            }
+        }
+
+        window.switchSession = function(id) {
+            currentSessionId = id;
+            saveToStorage();
+            window.history.pushState({}, document.title, window.location.pathname);
+            renderSessionList();
+            renderChat();
+        }
+
         function renderSessionList() {
             sessionListEl.innerHTML = '';
-            // Render ngược (mới nhất lên đầu)
-            [...chatSessions].reverse().forEach(session => {
+            
+            // Sắp xếp: Ghim ưu tiên lên đầu, sau đó mới đến mới nhất
+            let sortedSessions = [...chatSessions].sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return b.id - a.id; 
+            });
+
+            sortedSessions.forEach(session => {
                 const div = document.createElement('div');
                 div.className = `session-item ${session.id === currentSessionId ? 'active' : ''}`;
-                div.innerHTML = `<i class="fas fa-message"></i> ${session.title}`;
                 
-                // Khi click vào 1 lịch sử cũ
-                div.onclick = () => {
-                    currentSessionId = session.id;
-                    saveToStorage();
-                    
-                    // Làm sạch URL để không bị dính lệnh cũ, tránh load lại bị gửi đúp
-                    window.history.pushState({}, document.title, window.location.pathname);
-                    
-                    renderSessionList();
-                    renderChat();
-                };
+                let pinText = session.pinned ? '<span style="color:#f59e0b; font-weight:bold; margin-right:4px;">[Ghim]</span>' : '';
+
+                div.innerHTML = `
+                    <div class="session-item-left" onclick="switchSession('${session.id}')" title="${session.title}">
+                        <i class="fas fa-message"></i>
+                        <span class="sidebar-text-chat">${pinText} ${session.title}</span>
+                    </div>
+                    <div class="session-options">
+                        <button class="session-options-btn" onclick="toggleDropdown(event, '${session.id}')">&#8942;</button>
+                        <div class="session-dropdown" id="dropdown-${session.id}">
+                            <div class="dropdown-item" onclick="shareSession(event, '${session.id}')">Chia sẻ</div>
+                            <div class="dropdown-item" onclick="pinSession(event, '${session.id}')">${session.pinned ? 'Bỏ ghim' : 'Ghim'}</div>
+                            <div class="dropdown-item" onclick="renameSession(event, '${session.id}')">Đổi tên</div>
+                            <div class="dropdown-item text-danger" onclick="deleteSession(event, '${session.id}')">Xóa</div>
+                        </div>
+                    </div>
+                `;
                 sessionListEl.appendChild(div);
             });
         }
 
-        // Hàm vẽ khung chat bên phải
         function renderChat() {
             chatHistoryEl.innerHTML = '';
             const curSession = chatSessions.find(s => s.id === currentSessionId);
@@ -343,24 +438,19 @@
             chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
         }
 
-        // Sự kiện nút "Đoạn chat mới"
         document.getElementById('btn-new-chat').onclick = () => {
             const newId = generateId();
             chatSessions.push({
-                id: newId,
-                title: 'Đoạn chat mới',
+                id: newId, title: 'Đoạn chat mới', pinned: false,
                 messages: [{ sender: 'ai', text: 'Aegis đã sẵn sàng. Bạn muốn phân tích dữ liệu phần cứng nào tiếp theo?' }]
             });
             currentSessionId = newId;
             saveToStorage();
-            
             window.history.pushState({}, document.title, window.location.pathname);
-            
             renderSessionList();
             renderChat();
         };
 
-        // Chạy lần đầu
         renderSessionList();
         renderChat();
 
