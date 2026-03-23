@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use App\Models\SystemLog; // <-- Thêm thư viện Log
+use App\Models\SystemLog; 
 
 class AutoBanSpammer
 {
@@ -74,6 +74,22 @@ class AutoBanSpammer
 
                 Log::warning("Aegis Firewall đã tự động BAN IP: $ip do spam $requests req/min");
                 Cache::forget($cacheKey);
+
+                // ==========================================================
+                // 4. PHONG ẤN TẬN GỐC TRÊN LINUX FIREWALL (UFW)
+                // Khóa đứng mọi luồng giao tiếp vào tất cả các cổng (6060, 22, 80...)
+                // ==========================================================
+                if (PHP_OS_FAMILY === 'Linux') {
+                    try {
+                        // Dùng escapeshellarg để bảo mật biến $ip khi truyền vào Shell
+                        shell_exec("sudo ufw deny from " . escapeshellarg($ip));
+                    } catch (\Exception $e) {
+                        Log::error("Aegis OS-Ban Error: " . $e->getMessage());
+                    }
+                }
+
+                // Đá văng ngay lập tức khỏi web
+                abort(403, 'AEGIS: PHÁT HIỆN TẤN CÔNG DDoS. KẾT NỐI BỊ TỪ CHỐI NGAY LẬP TỨC!');
             }
         }
 
