@@ -24,7 +24,12 @@ class SystemLogController extends Controller
         }
 
         if ($request->filled('level') && $request->level !== 'all') {
-            $query->where('level', $request->level);
+            // Khi lọc theo Attack (danger), lấy cả log tấn công (đỏ) và gỡ chặn (xanh lá)
+            if ($request->level === 'danger') {
+                $query->whereIn('level', ['danger', 'success']);
+            } else {
+                $query->where('level', $request->level);
+            }
         }
 
         // 2. LỌC KHOẢNG THỜI GIAN
@@ -40,21 +45,21 @@ class SystemLogController extends Controller
         // 3. THỐNG KÊ TỔNG QUAN
         $stats = [
             'total' => SystemLog::count(),
-            'attack' => SystemLog::where('level', 'danger')->count(), 
-            'alert' => SystemLog::where('level', 'warning')->count(), 
-            'system' => SystemLog::where('level', 'info')->count(),   
+            'attack' => SystemLog::whereIn('level', ['danger', 'success'])->count(), // Gộp đỏ và xanh lá
+            'alert' => SystemLog::where('level', 'warning')->count(), // Vàng
+            'system' => SystemLog::where('level', 'info')->count(),   // Xanh dương
         ];
 
-        // 6.2 THỐNG KÊ IP TẤN CÔNG NHIỀU NHẤT
+        // TOP IP TẤN CÔNG (Chỉ lấy những IP thực sự tấn công - đỏ)
         $topIpsQuery = SystemLog::select('ip_address', DB::raw('count(*) as total'))
             ->whereNotNull('ip_address')
-            ->whereIn('level', ['danger', 'warning']) 
+            ->where('level', 'danger') 
             ->groupBy('ip_address')
             ->orderByDesc('total');
         if ($fromDate && $toDate) $topIpsQuery->whereBetween('created_at', [$from, $to]);
         $topIps = $topIpsQuery->get(); 
 
-        // 6.1 THỐNG KÊ SỐ LẦN CẢNH BÁO
+        // THỐNG KÊ SỐ LẦN CẢNH BÁO (Chỉ lấy cảnh báo - vàng)
         $alertDetailsQuery = SystemLog::select('source', DB::raw('count(*) as total'))
             ->where('level', 'warning')
             ->groupBy('source')
@@ -62,31 +67,32 @@ class SystemLogController extends Controller
         if ($fromDate && $toDate) $alertDetailsQuery->whereBetween('created_at', [$from, $to]);
         $alertDetails = $alertDetailsQuery->get();
 
-        // 7. ATTACK TIMELINE (ĐÃ SỬA: Sắp xếp GIẢM DẦN 'desc' để mới nhất lên đầu)
-        $timelineQuery = SystemLog::whereIn('level', ['danger', 'warning'])
+        // ATTACK TIMELINE (Lấy Tấn công, Gỡ chặn và Cảnh báo để hiển thị log sự kiện)
+        $timelineQuery = SystemLog::whereIn('level', ['danger', 'success', 'warning'])
             ->orderBy('created_at', 'desc');
         if ($fromDate && $toDate) $timelineQuery->whereBetween('created_at', [$from, $to]);
         $attackTimeline = $timelineQuery->get();
 
-        // 6.3 BIỂU ĐỒ CHART.JS (7 Ngày) - ĐÃ SỬA: Thêm biến chartSystem
+        // BIỂU ĐỒ CHART.JS (7 Ngày)
         $chartLabels = [];
         $chartAttack = [];
         $chartAlert = [];
-        $chartSystem = []; // Thêm mảng chứa data System
+        $chartSystem = []; 
         
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i)->format('Y-m-d');
             $chartLabels[] = Carbon::now()->subDays($i)->format('d/m');
-            $chartAttack[] = SystemLog::whereDate('created_at', $date)->where('level', 'danger')->count();
+            // Biểu đồ Security (Attack) = số cuộc tấn công + số lần gỡ chặn
+            $chartAttack[] = SystemLog::whereDate('created_at', $date)->whereIn('level', ['danger', 'success'])->count();
             $chartAlert[] = SystemLog::whereDate('created_at', $date)->where('level', 'warning')->count();
-            $chartSystem[] = SystemLog::whereDate('created_at', $date)->where('level', 'info')->count(); // Lấy data System
+            $chartSystem[] = SystemLog::whereDate('created_at', $date)->where('level', 'info')->count();
         }
 
         // LẤY BẢNG LOGS CHÍNH
         $logs = $query->orderBy('created_at', 'desc')->get();
 
         return view('logs', compact(
-            'logs', 'stats', 'topIps', 'chartLabels', 'chartAttack', 'chartAlert', 'chartSystem', // Đã thêm chartSystem
+            'logs', 'stats', 'topIps', 'chartLabels', 'chartAttack', 'chartAlert', 'chartSystem', 
             'fromDate', 'toDate', 'alertDetails', 'attackTimeline'
         ));
     }

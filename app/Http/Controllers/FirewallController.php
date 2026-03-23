@@ -32,9 +32,7 @@ class FirewallController extends Controller
         $ip = $request->ip_address;
         $reason = $request->reason ?? 'Manual Blocked by Admin';
 
-        // ==========================================
         // 1. CHỐNG TRÙNG LẶP (Chặn 1 lần là xong)
-        // ==========================================
         if (Blacklist::where('ip_address', $ip)->exists()) {
             return back()->with('error', "IP $ip đã bị chặn trước đó rồi, không thể chặn lại!");
         }
@@ -46,7 +44,7 @@ class FirewallController extends Controller
             'status' => 'blocked'
         ]);
 
-        // 3. GHI VÀO LOG HỆ THỐNG (REAL LOG)
+        // 3. GHI VÀO LOG HỆ THỐNG (Màu Đỏ - Tấn công)
         SystemLog::create([
             'level' => 'danger',
             'source' => 'Manual Firewall',
@@ -54,7 +52,7 @@ class FirewallController extends Controller
             'ip_address' => $ip,
         ]);
 
-        // 4. Chặn thật trên hệ thống Linux (Bảo mật bằng escapeshellarg)
+        // 4. Chặn thật trên hệ thống Linux
         if (PHP_OS_FAMILY === 'Linux') {
             try {
                 shell_exec("sudo ufw deny from " . escapeshellarg($ip));
@@ -71,9 +69,9 @@ class FirewallController extends Controller
     {
         $item = Blacklist::findOrFail($id);
         
-        // GHI VÀO LOG HỆ THỐNG
+        // GHI VÀO LOG HỆ THỐNG (Màu Xanh Lá - Gỡ chặn)
         SystemLog::create([
-            'level' => 'warning', // ĐÃ SỬA: Đổi từ 'info' thành 'warning' để không hiển thị trong System (chỉ dành cho CPU, RAM...)
+            'level' => 'success', 
             'source' => 'Manual Firewall',
             'message' => "Quản trị viên đã GỠ CHẶN an toàn cho IP này.",
             'ip_address' => $item->ip_address,

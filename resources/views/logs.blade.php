@@ -7,9 +7,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-main: #0b1120; --bg-card: #111827; --neon-red: #ef4444; 
-            --neon-blue: #3b82f6; --neon-yellow: #eab308; --text-main: #f3f4f6;
-            --text-muted: #9ca3af; --border-color: #1f2937;
+            --bg-main: #0b1120; --bg-card: #111827; 
+            --neon-red: #ef4444;       /* Tấn công */
+            --neon-green: #10b981;     /* Gỡ chặn */
+            --neon-yellow: #eab308;    /* Cảnh báo Alert */
+            --neon-blue: #3b82f6;      /* Hệ thống System */
+            --text-main: #f3f4f6; --text-muted: #9ca3af; --border-color: #1f2937;
         }
         body { background: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; min-height: 100vh; }
         
@@ -48,16 +51,15 @@
         .log-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 14px; }
         .log-table tbody tr:hover { background-color: rgba(59, 130, 246, 0.08); }
 
-        /* Badge chuẩn Spec */
         .badge { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .badge-danger { color: var(--neon-red); } 
+        .badge-success { color: var(--neon-green); } 
         .badge-warning { color: var(--neon-yellow); } 
         .badge-info { color: var(--neon-blue); } 
 
         .summary-footer { margin-top: 25px; padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border: 1px dashed var(--neon-blue); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .stat-box { background: var(--bg-main); padding: 8px 15px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; display: flex; align-items: center; gap: 8px; }
         
-        /* Terminal CSS cho Attack Timeline */
         .terminal-box { background: #000; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6; max-height: 250px; overflow-y: auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
     </style>
 </head>
@@ -88,7 +90,9 @@
                             <span style="color: #fff;">{{ $timeline->created_at->format('H:i') }}</span> - 
                             @if($timeline->level == 'danger')
                                 <span style="color: var(--neon-red);">Attack detected ({{ $timeline->ip_address }})</span>
-                            @else
+                            @elseif($timeline->level == 'success')
+                                <span style="color: var(--neon-green);">Unblock IP: {{ $timeline->ip_address }}</span>
+                            @elseif($timeline->level == 'warning')
                                 <span style="color: var(--neon-yellow);">Alert: {{ Str::limit($timeline->message, 40) }}</span>
                             @endif
                         </div>
@@ -149,7 +153,7 @@
                 
                 <select name="level" class="filter-input" onchange="this.form.submit()">
                     <option value="all" {{ request('level') == 'all' ? 'selected' : '' }}>Tất cả các loại Log</option>
-                    <option value="danger" {{ request('level') == 'danger' ? 'selected' : '' }}>🔴 Tấn công (Attack)</option>
+                    <option value="danger" {{ request('level') == 'danger' ? 'selected' : '' }}>🔴 Tấn công / 🟢 Gỡ chặn (Security)</option>
                     <option value="warning" {{ request('level') == 'warning' ? 'selected' : '' }}>🟡 Cảnh báo (Alert)</option>
                     <option value="info" {{ request('level') == 'info' ? 'selected' : '' }}>🔵 Hệ thống (System)</option>
                 </select>
@@ -178,8 +182,9 @@
                             <td style="color: var(--text-muted); font-size: 13px;">{{ $log->created_at->format('H:i:s d/m') }}</td>
                             <td>
                                 @if($log->level == 'danger') <span class="badge badge-danger">🔴 attack</span>
+                                @elseif($log->level == 'success') <span class="badge badge-success">🟢 unblock</span>
                                 @elseif($log->level == 'warning') <span class="badge badge-warning">🟡 alert</span>
-                                @else <span class="badge badge-info">🔵 system</span>
+                                @elseif($log->level == 'info') <span class="badge badge-info">🔵 system</span>
                                 @endif
                             </td>
                             <td>
@@ -198,9 +203,10 @@
             @php
                 $displayFrom = $fromDate ? \Carbon\Carbon::parse($fromDate)->format('d/m/Y') : 'Khởi tạo hệ thống';
                 $displayTo = $toDate ? \Carbon\Carbon::parse($toDate)->format('d/m/Y') : 'Hiện tại';
-                $countDanger = $logs->where('level', 'danger')->count();
-                $countWarning = $logs->where('level', 'warning')->count();
-                $countInfo = $logs->where('level', 'info')->count();
+                // Đếm chính xác theo đúng Database Map
+                $countDanger = \App\Models\SystemLog::whereIn('level', ['danger', 'success'])->count();
+                $countWarning = \App\Models\SystemLog::where('level', 'warning')->count();
+                $countInfo = \App\Models\SystemLog::where('level', 'info')->count();
             @endphp
             
             <div class="summary-footer">
@@ -215,7 +221,7 @@
                         <strong style="color: white; font-size: 16px;">{{ $logs->count() }}</strong>
                     </div>
                     <div class="stat-box" style="border-left: 3px solid var(--neon-red);">
-                        <strong style="color: var(--neon-red);">{{ $countDanger }}</strong> <span style="font-size: 12px; color: #9ca3af;">Attack</span>
+                        <strong style="color: var(--neon-red);">{{ $countDanger }}</strong> <span style="font-size: 12px; color: #9ca3af;">Security</span>
                     </div>
                     <div class="stat-box" style="border-left: 3px solid var(--neon-yellow);">
                         <strong style="color: var(--neon-yellow);">{{ $countWarning }}</strong> <span style="font-size: 12px; color: #9ca3af;">Alert</span>
@@ -236,28 +242,27 @@
                 labels: {!! json_encode($chartLabels) !!},
                 datasets: [
                     {
-                        label: 'Số attack theo ngày',
+                        label: 'Số attack/unblock (Security)',
                         data: {!! json_encode($chartAttack) !!},
-                        borderColor: '#ef4444',
+                        borderColor: '#ef4444', // Vẫn giữ đường biên đỏ cho Tấn công
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4
                     },
                     {
-                        label: 'Số alert theo ngày',
+                        label: 'Số alert (Cảnh báo CPU/RAM)',
                         data: {!! json_encode($chartAlert) !!},
-                        borderColor: '#eab308',
+                        borderColor: '#eab308', // Màu vàng
                         backgroundColor: 'rgba(234, 179, 8, 0.1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4
                     },
-                    // ĐÃ SỬA: Thêm dataset thứ 3 cho phần System
                     {
-                        label: 'Số system theo ngày',
+                        label: 'Số system (Log hệ thống)',
                         data: {!! json_encode($chartSystem) !!},
-                        borderColor: '#3b82f6', // Xanh dương
+                        borderColor: '#3b82f6', // Màu xanh dương
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
                         fill: true,
