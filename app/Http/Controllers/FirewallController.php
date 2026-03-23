@@ -4,24 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Blacklist;
-use App\Models\SystemLog; // <-- Thêm thư viện Log
+use App\Models\SystemLog;
 use Carbon\Carbon;
 
 class FirewallController extends Controller
 {
-    // Hiển thị trang Firewall (Đã nâng cấp Thống kê & Timeline)
     public function index()
     {
         $blacklists = Blacklist::orderBy('created_at', 'desc')->get();
         
-        // 1. THỐNG KÊ TẤN CÔNG (Statistics)
         $totalAttacks = Blacklist::count();
         $todayAttacks = Blacklist::whereDate('created_at', Carbon::today())->count();
         $autoBanned = Blacklist::where('reason', 'like', '%Auto-ban%')
                                ->orWhere('reason', 'like', '%Flood%')
                                ->count();
 
-        // 2. TIMELINE TẤN CÔNG (Lấy 10 sự kiện mới nhất)
         $timelineEvents = Blacklist::orderBy('created_at', 'desc')->take(10)->get();
 
         return view('firewall', compact('blacklists', 'totalAttacks', 'todayAttacks', 'autoBanned', 'timelineEvents'));
@@ -35,14 +32,21 @@ class FirewallController extends Controller
         $ip = $request->ip_address;
         $reason = $request->reason ?? 'Manual Blocked by Admin';
 
-        // 1. Lưu vào Database Blacklist
+        // ==========================================
+        // 1. CHỐNG TRÙNG LẶP (Chặn 1 lần là xong)
+        // ==========================================
+        if (Blacklist::where('ip_address', $ip)->exists()) {
+            return back()->with('error', "IP $ip đã bị chặn trước đó rồi, không thể chặn lại!");
+        }
+
+        // 2. Lưu vào Database Blacklist
         Blacklist::create([
             'ip_address' => $ip,
             'reason' => $reason,
             'status' => 'blocked'
         ]);
 
-        // 2. GHI VÀO LOG HỆ THỐNG (REAL LOG)
+        // 3. GHI VÀO LOG HỆ THỐNG (REAL LOG)
         SystemLog::create([
             'level' => 'danger',
             'source' => 'Manual Firewall',
@@ -50,9 +54,13 @@ class FirewallController extends Controller
             'ip_address' => $ip,
         ]);
 
-        // 3. Chặn thật trên hệ thống Linux (Yêu cầu sudo ufw)
+        // 4. Chặn thật trên hệ thống Linux (Bảo mật bằng escapeshellarg)
         if (PHP_OS_FAMILY === 'Linux') {
-            shell_exec("sudo ufw deny from $ip");
+            try {
+                shell_exec("sudo ufw deny from " . escapeshellarg($ip));
+            } catch (\Exception $e) {
+                \Log::error("UFW Block Error: " . $e->getMessage());
+            }
         }
 
         return back()->with('success', "IP $ip đã bị đưa vào danh sách đen!");
@@ -63,7 +71,7 @@ class FirewallController extends Controller
     {
         $item = Blacklist::findOrFail($id);
         
-        // GHI VÀO LOG HỆ THỐNG (REAL LOG)
+        // GHI VÀO LOG HỆ THỐNG
         SystemLog::create([
             'level' => 'info',
             'source' => 'Manual Firewall',
@@ -73,7 +81,11 @@ class FirewallController extends Controller
         
         // Gỡ lệnh chặn trên Linux
         if (PHP_OS_FAMILY === 'Linux') {
-            shell_exec("sudo ufw delete deny from {$item->ip_address}");
+            try {
+                shell_exec("sudo ufw delete deny from " . escapeshellarg($item->ip_address));
+            } catch (\Exception $e) {
+                \Log::error("UFW Unblock Error: " . $e->getMessage());
+            }
         }
         
         $item->delete();
