@@ -32,27 +32,24 @@ class FirewallController extends Controller
         $ip = $request->ip_address;
         $reason = $request->reason ?? 'Manual Blocked by Admin';
 
-        // 1. CHỐNG TRÙNG LẶP (Chặn 1 lần là xong)
         if (Blacklist::where('ip_address', $ip)->exists()) {
             return back()->with('error', "IP $ip đã bị chặn trước đó rồi, không thể chặn lại!");
         }
 
-        // 2. Lưu vào Database Blacklist
         Blacklist::create([
             'ip_address' => $ip,
             'reason' => $reason,
             'status' => 'blocked'
         ]);
 
-        // 3. GHI VÀO LOG HỆ THỐNG (Màu Đỏ - Tấn công)
+        // GHI VÀO LOG HỆ THỐNG (Màu Đỏ - Blocked)
         SystemLog::create([
             'level' => 'danger',
             'source' => 'Manual Firewall',
-            'message' => "Quản trị viên đã CHẶN thủ công IP. Lý do: $reason",
+            'message' => "Quản trị viên đã CHẶN IP. Lý do: $reason",
             'ip_address' => $ip,
         ]);
 
-        // 4. Chặn thật trên hệ thống Linux
         if (PHP_OS_FAMILY === 'Linux') {
             try {
                 shell_exec("sudo ufw deny from " . escapeshellarg($ip));
@@ -69,7 +66,7 @@ class FirewallController extends Controller
     {
         $item = Blacklist::findOrFail($id);
         
-        // GHI VÀO LOG HỆ THỐNG (Màu Xanh Lá - Gỡ chặn)
+        // GHI VÀO LOG HỆ THỐNG (Màu Xanh Lá - Unblocked)
         SystemLog::create([
             'level' => 'success', 
             'source' => 'Manual Firewall',
@@ -77,7 +74,6 @@ class FirewallController extends Controller
             'ip_address' => $item->ip_address,
         ]);
         
-        // Gỡ lệnh chặn trên Linux
         if (PHP_OS_FAMILY === 'Linux') {
             try {
                 shell_exec("sudo ufw delete deny from " . escapeshellarg($item->ip_address));

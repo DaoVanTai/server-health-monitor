@@ -8,10 +8,10 @@
     <style>
         :root {
             --bg-main: #0b1120; --bg-card: #111827; 
-            --neon-red: #ef4444;       /* Tấn công */
-            --neon-green: #10b981;     /* Gỡ chặn */
-            --neon-yellow: #eab308;    /* Cảnh báo Alert */
-            --neon-blue: #3b82f6;      /* Hệ thống System */
+            --neon-red: #ef4444;       /* Blocked */
+            --neon-green: #10b981;     /* Unblocked */
+            --neon-yellow: #eab308;    /* Alert */
+            --neon-blue: #3b82f6;      /* UI Theme Header */
             --text-main: #f3f4f6; --text-muted: #9ca3af; --border-color: #1f2937;
         }
         body { background: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; min-height: 100vh; }
@@ -55,7 +55,6 @@
         .badge-danger { color: var(--neon-red); } 
         .badge-success { color: var(--neon-green); } 
         .badge-warning { color: var(--neon-yellow); } 
-        .badge-info { color: var(--neon-blue); } 
 
         .summary-footer { margin-top: 25px; padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border: 1px dashed var(--neon-blue); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .stat-box { background: var(--bg-main); padding: 8px 15px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; display: flex; align-items: center; gap: 8px; }
@@ -73,31 +72,31 @@
     </aside>
 
     <main class="main-content">
-        <h1><span>📊 LOG & ANALYTICS (PHÂN TÍCH NHẬT KÝ HỆ THỐNG)</span></h1>
+        <h1><span>📊 LOG & ANALYTICS (PHÂN TÍCH NHẬT KÝ)</span></h1>
 
         <div class="grid-2col">
             <div class="card">
-                <h3 style="margin-top:0; color:var(--text-muted);"><i class="fas fa-chart-line"></i> Biểu Đồ Log Theo Thời Gian</h3>
-                <canvas id="attackChart" height="90"></canvas>
+                <h3 style="margin-top:0; color:var(--text-muted);"><i class="fas fa-chart-line"></i> Biểu Đồ Sự Kiện</h3>
+                <canvas id="logChart" height="90"></canvas>
             </div>
 
             <div class="card" style="display: flex; flex-direction: column; padding: 15px;">
-                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-stopwatch"></i> Attack Timeline</h3>
+                <h3 style="margin-top:0; color:var(--text-muted);"><i class="fas fa-history"></i> Timeline Hoạt Động</h3>
                 <div class="terminal-box custom-scrollbar" style="flex: 1;">
                     <div style="color: #6b7280; margin-bottom: 10px;">// Theo dõi sự kiện theo trình tự thời gian</div>
                     @forelse($attackTimeline as $timeline)
                         <div>
                             <span style="color: #fff;">{{ $timeline->created_at->format('H:i') }}</span> - 
                             @if($timeline->level == 'danger')
-                                <span style="color: var(--neon-red);">Attack detected ({{ $timeline->ip_address }})</span>
+                                <span style="color: var(--neon-red);">Blocked IP: {{ $timeline->ip_address }}</span>
                             @elseif($timeline->level == 'success')
-                                <span style="color: var(--neon-green);">Unblock IP: {{ $timeline->ip_address }}</span>
+                                <span style="color: var(--neon-green);">Unblocked IP: {{ $timeline->ip_address }}</span>
                             @elseif($timeline->level == 'warning')
                                 <span style="color: var(--neon-yellow);">Alert: {{ Str::limit($timeline->message, 40) }}</span>
                             @endif
                         </div>
                     @empty
-                        <div style="color: #10b981;">[OK] Không phát hiện tấn công nào.</div>
+                        <div style="color: #10b981;">[OK] Không có sự kiện nào.</div>
                     @endforelse
                 </div>
             </div>
@@ -105,11 +104,11 @@
 
         <div class="analytics-grid">
             <div class="card" style="grid-column: span 2;">
-                <h3 style="margin-top:0; color:var(--neon-yellow);"><i class="fas fa-exclamation-triangle"></i> Thống Kê Số Lần Cảnh Báo</h3>
+                <h3 style="margin-top:0; color:var(--neon-yellow);"><i class="fas fa-exclamation-triangle"></i> Thống Kê Nguồn Cảnh Báo</h3>
                 <div class="custom-scrollbar" style="max-height: 200px; overflow-y: auto;">
                     <table class="log-table">
                         <thead style="position: sticky; top: 0; background: var(--bg-card);">
-                            <tr><th>Type (Loại cảnh báo)</th><th>Count</th></tr>
+                            <tr><th>Nguồn phát sinh (Source)</th><th>Số lần</th></tr>
                         </thead>
                         <tbody>
                             @forelse($alertDetails as $alert)
@@ -126,11 +125,11 @@
             </div>
 
             <div class="card">
-                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-skull-crossbones"></i> Top IP Tấn Công</h3>
+                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-ban"></i> Top IP Bị Chặn</h3>
                 <div class="custom-scrollbar" style="max-height: 200px; overflow-y: auto;">
                     <table class="log-table">
                         <thead style="position: sticky; top: 0; background: var(--bg-card);">
-                            <tr><th>IP Address</th><th>Attempts</th></tr>
+                            <tr><th>Địa chỉ IP</th><th>Lần chặn</th></tr>
                         </thead>
                         <tbody>
                             @forelse($topIps as $top)
@@ -139,7 +138,7 @@
                                 <td style="font-weight:bold;">{{ $top->total }}</td>
                             </tr>
                             @empty
-                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">Chưa có dữ liệu.</td></tr>
+                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">Chưa có IP nào bị chặn.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -152,17 +151,17 @@
                 <input type="text" name="search" class="filter-input" placeholder="Tìm theo IP, Nội dung..." value="{{ request('search') }}" style="flex:1;">
                 
                 <select name="level" class="filter-input" onchange="this.form.submit()">
-                    <option value="all" {{ request('level') == 'all' ? 'selected' : '' }}>Tất cả các loại Log</option>
-                    <option value="danger" {{ request('level') == 'danger' ? 'selected' : '' }}>🔴 Tấn công / 🟢 Gỡ chặn (Security)</option>
+                    <option value="all" {{ request('level') == 'all' ? 'selected' : '' }}>Tất cả sự kiện</option>
+                    <option value="danger" {{ request('level') == 'danger' ? 'selected' : '' }}>🔴 IP Bị Chặn (Blocked)</option>
+                    <option value="success" {{ request('level') == 'success' ? 'selected' : '' }}>🟢 IP Được Gỡ (Unblocked)</option>
                     <option value="warning" {{ request('level') == 'warning' ? 'selected' : '' }}>🟡 Cảnh báo (Alert)</option>
-                    <option value="info" {{ request('level') == 'info' ? 'selected' : '' }}>🔵 Hệ thống (System)</option>
                 </select>
 
                 <input type="date" name="from_date" class="filter-input" value="{{ $fromDate }}">
                 <span style="color: var(--text-muted);">-</span>
                 <input type="date" name="to_date" class="filter-input" value="{{ $toDate }}">
 
-                <button type="submit" class="btn-action"><i class="fas fa-search"></i> LỌC DỮ LIỆU</button>
+                <button type="submit" class="btn-action"><i class="fas fa-search"></i> LỌC</button>
                 <a href="{{ route('logs.index') }}" class="btn-action btn-clear" title="Xóa bộ lọc"><i class="fas fa-redo"></i></a>
             </form>
 
@@ -170,9 +169,9 @@
                 <table class="log-table">
                     <thead>
                         <tr>
-                            <th style="position: sticky; top: 0; background: var(--bg-card);">Time</th>
-                            <th style="position: sticky; top: 0; background: var(--bg-card);">Type</th>
-                            <th style="position: sticky; top: 0; background: var(--bg-card);">Message</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card);">Thời gian</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card);">Phân loại</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card);">Nội dung chi tiết</th>
                             <th style="position: sticky; top: 0; background: var(--bg-card);">IP</th>
                         </tr>
                     </thead>
@@ -181,17 +180,16 @@
                         <tr>
                             <td style="color: var(--text-muted); font-size: 13px;">{{ $log->created_at->format('H:i:s d/m') }}</td>
                             <td>
-                                @if($log->level == 'danger') <span class="badge badge-danger">🔴 attack</span>
-                                @elseif($log->level == 'success') <span class="badge badge-success">🟢 unblock</span>
+                                @if($log->level == 'danger') <span class="badge badge-danger">🔴 blocked</span>
+                                @elseif($log->level == 'success') <span class="badge badge-success">🟢 unblocked</span>
                                 @elseif($log->level == 'warning') <span class="badge badge-warning">🟡 alert</span>
-                                @elseif($log->level == 'info') <span class="badge badge-info">🔵 system</span>
                                 @endif
                             </td>
                             <td>
                                 <strong style="color: #9ca3af;">[{{ $log->source }}]</strong> 
                                 {{ Str::limit($log->message, 80) }}
                             </td>
-                            <td style="color: var(--neon-blue); font-family: monospace;">{{ $log->ip_address ?? 'null' }}</td>
+                            <td style="color: var(--neon-blue); font-family: monospace;">{{ $log->ip_address ?? 'N/A' }}</td>
                         </tr>
                         @empty
                         <tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">Không tìm thấy sự kiện nào.</td></tr>
@@ -203,10 +201,11 @@
             @php
                 $displayFrom = $fromDate ? \Carbon\Carbon::parse($fromDate)->format('d/m/Y') : 'Khởi tạo hệ thống';
                 $displayTo = $toDate ? \Carbon\Carbon::parse($toDate)->format('d/m/Y') : 'Hiện tại';
-                // Đếm chính xác theo đúng Database Map
-                $countDanger = \App\Models\SystemLog::whereIn('level', ['danger', 'success'])->count();
-                $countWarning = \App\Models\SystemLog::where('level', 'warning')->count();
-                $countInfo = \App\Models\SystemLog::where('level', 'info')->count();
+                
+                // Đếm chính xác số lượng đang hiển thị trên bảng
+                $countBlocked = $logs->where('level', 'danger')->count();
+                $countUnblocked = $logs->where('level', 'success')->count();
+                $countWarning = $logs->where('level', 'warning')->count();
             @endphp
             
             <div class="summary-footer">
@@ -217,17 +216,17 @@
                 
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <div class="stat-box" style="border-color: var(--neon-blue);">
-                        <span style="color: var(--text-muted);">Tổng sự kiện:</span>
+                        <span style="color: var(--text-muted);">Tổng số:</span>
                         <strong style="color: white; font-size: 16px;">{{ $logs->count() }}</strong>
                     </div>
                     <div class="stat-box" style="border-left: 3px solid var(--neon-red);">
-                        <strong style="color: var(--neon-red);">{{ $countDanger }}</strong> <span style="font-size: 12px; color: #9ca3af;">Security</span>
+                        <strong style="color: var(--neon-red);">{{ $countBlocked }}</strong> <span style="font-size: 12px; color: #9ca3af;">Blocked</span>
+                    </div>
+                    <div class="stat-box" style="border-left: 3px solid var(--neon-green);">
+                        <strong style="color: var(--neon-green);">{{ $countUnblocked }}</strong> <span style="font-size: 12px; color: #9ca3af;">Unblocked</span>
                     </div>
                     <div class="stat-box" style="border-left: 3px solid var(--neon-yellow);">
                         <strong style="color: var(--neon-yellow);">{{ $countWarning }}</strong> <span style="font-size: 12px; color: #9ca3af;">Alert</span>
-                    </div>
-                    <div class="stat-box" style="border-left: 3px solid var(--neon-blue);">
-                        <strong style="color: var(--neon-blue);">{{ $countInfo }}</strong> <span style="font-size: 12px; color: #9ca3af;">System</span>
                     </div>
                 </div>
             </div>
@@ -235,35 +234,35 @@
     </main>
 
     <script>
-        const ctx = document.getElementById('attackChart').getContext('2d');
-        const attackChart = new Chart(ctx, {
+        const ctx = document.getElementById('logChart').getContext('2d');
+        const logChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: {!! json_encode($chartLabels) !!},
                 datasets: [
                     {
-                        label: 'Số attack/unblock (Security)',
-                        data: {!! json_encode($chartAttack) !!},
-                        borderColor: '#ef4444', // Vẫn giữ đường biên đỏ cho Tấn công
+                        label: 'Số IP Bị Chặn (Blocked)',
+                        data: {!! json_encode($chartBlocked) !!},
+                        borderColor: '#ef4444', 
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4
                     },
                     {
-                        label: 'Số alert (Cảnh báo CPU/RAM)',
-                        data: {!! json_encode($chartAlert) !!},
-                        borderColor: '#eab308', // Màu vàng
-                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                        label: 'Số IP Được Gỡ (Unblocked)',
+                        data: {!! json_encode($chartUnblocked) !!},
+                        borderColor: '#10b981', // Màu xanh lá
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4
                     },
                     {
-                        label: 'Số system (Log hệ thống)',
-                        data: {!! json_encode($chartSystem) !!},
-                        borderColor: '#3b82f6', // Màu xanh dương
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        label: 'Số Cảnh Báo (Alert)',
+                        data: {!! json_encode($chartAlert) !!},
+                        borderColor: '#eab308', 
+                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4
