@@ -23,17 +23,16 @@ class AegisController extends Controller
         $avgCpu = $recentMetrics->avg('cpu_percent') ?? 0;
         $avgRam = $recentMetrics->avg('ram_percent') ?? 0;
 
-        // 2. Dữ liệu Ổ cứng (Disk) - Lấy trực tiếp từ phần cứng vật lý
+        // 2. Dữ liệu Ổ cứng (Disk)
         $diskTotal = disk_total_space('/');
         $diskFree = disk_free_space('/');
         $diskUsedPercent = $diskTotal > 0 ? round((($diskTotal - $diskFree) / $diskTotal) * 100, 1) : 0;
         $diskFreeGB = round($diskFree / 1073741824, 2);
         $diskTotalGB = round($diskTotal / 1073741824, 2);
 
-        // 3. Dữ liệu Mạng (Network) - Quét tự động tên cột DB & Format 2 số thập phân giống Dashboard
-        $metricData = $latestMetric ? (array) $latestMetric : [];
-        $rawDownload = $metricData['download_speed'] ?? $metricData['network_rx'] ?? $metricData['download'] ?? $metricData['rx_speed'] ?? $metricData['rx'] ?? 0;
-        $rawUpload = $metricData['upload_speed'] ?? $metricData['network_tx'] ?? $metricData['upload'] ?? $metricData['tx_speed'] ?? $metricData['tx'] ?? 0;
+        // 3. Dữ liệu Mạng (Network) - CHÍNH XÁC 100% TỪ BẢNG SERVER_METRICS
+        $rawDownload = $latestMetric->network_in ?? 0;
+        $rawUpload = $latestMetric->network_out ?? 0;
         
         $netDownload = number_format((float)$rawDownload, 2, '.', '');
         $netUpload = number_format((float)$rawUpload, 2, '.', '');
@@ -91,16 +90,13 @@ class AegisController extends Controller
                 $aiResponse = "> Aegis: [TÌNH TRẠNG HỆ THỐNG] Core Health Score: " . round($healthScore) . "/100. \nCPU: " . round($avgCpu, 1) . "% | RAM: " . round($avgRam, 1) . "% | Disk: {$diskUsedPercent}%. \nTường lửa đã chặn {$threatCount} mối đe dọa. Toàn bộ máy chủ đang trong trạng thái hoàn hảo.";
             }
             elseif (str_contains($command, 'đồ án') || str_contains($command, 'hệ thống này làm gì') || str_contains($command, 'chào') || str_contains($command, 'hello')) {
-                $aiResponse = "> Aegis: Xin chào. Tôi là trung tâm trí tuệ nhân tạo của hệ thống Server Health Monitoring. Nhiệm vụ của tôi là giám sát tài nguyên (CPU, RAM, Disk, Network) theo thời gian thực và tự động chặn đứng các cuộc tấn công DDoS.";
+                $aiResponse = "> Aegis: Xin chào Quản trị viên. Tôi là Aegis, AI giám sát độc quyền của hệ thống Server Health Monitoring. Hiện tại các luồng dữ liệu đang được theo dõi sát sao. Tôi có thể giúp gì cho bạn?";
             }
             else {
                 $aiResponse = "> Aegis: [LỖI NGỮ NGHĨA] Lệnh không xác định. Các khóa quét hỗ trợ: 'tình trạng hệ thống', 'tình trạng ổ cứng', 'kiểm tra mạng', 'thông số ram', 'thông số cpu', 'kiểm tra tấn công'.";
             }
         }
 
-        // =========================================================
-        // PHẦN 3: GỬI DỮ LIỆU SANG GIAO DIỆN BLADE
-        // =========================================================
         return view('ai_intelligence', [
             'score' => round($healthScore),
             'threats' => $threatCount,
