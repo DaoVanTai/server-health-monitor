@@ -27,9 +27,7 @@ class SystemLogController extends Controller
             $query->where('level', $request->level);
         }
 
-        // ==========================================
-        // 2. KHÔI PHỤC BỘ LỌC KHOẢNG THỜI GIAN
-        // ==========================================
+        // 2. LỌC KHOẢNG THỜI GIAN
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -39,7 +37,7 @@ class SystemLogController extends Controller
             $query->whereBetween('created_at', [$from, $to]);
         }
 
-        // 3. THỐNG KÊ ANALYTICS CẤP CAO (Cho biểu đồ và tổng quan)
+        // 3. THỐNG KÊ TỔNG QUAN
         $stats = [
             'total' => SystemLog::count(),
             'attack' => SystemLog::where('level', 'danger')->count(), 
@@ -47,33 +45,46 @@ class SystemLogController extends Controller
             'system' => SystemLog::where('level', 'info')->count(),   
         ];
 
-        // 4. LẤY TẤT CẢ IP TẤN CÔNG VÀ BỊ BAN
-        $topIps = SystemLog::select('ip_address', DB::raw('count(*) as total'))
+        // 6.2 THỐNG KÊ IP TẤN CÔNG NHIỀU NHẤT
+        $topIpsQuery = SystemLog::select('ip_address', DB::raw('count(*) as total'))
             ->whereNotNull('ip_address')
             ->whereIn('level', ['danger', 'warning']) 
             ->groupBy('ip_address')
-            ->orderByDesc('total')
-            ->get(); 
+            ->orderByDesc('total');
+        if ($fromDate && $toDate) $topIpsQuery->whereBetween('created_at', [$from, $to]);
+        $topIps = $topIpsQuery->get(); 
 
-        // 5. CHUẨN BỊ DỮ LIỆU CHO BIỂU ĐỒ CHART.JS
+        // 6.1 THỐNG KÊ SỐ LẦN CẢNH BÁO (Gom nhóm theo Nguồn cảnh báo)
+        $alertDetailsQuery = SystemLog::select('source', DB::raw('count(*) as total'))
+            ->where('level', 'warning')
+            ->groupBy('source')
+            ->orderByDesc('total');
+        if ($fromDate && $toDate) $alertDetailsQuery->whereBetween('created_at', [$from, $to]);
+        $alertDetails = $alertDetailsQuery->get();
+
+        // 7. ATTACK TIMELINE (Lấy sự kiện nguy hiểm, Sắp xếp TĂNG DẦN theo thời gian)
+        $timelineQuery = SystemLog::whereIn('level', ['danger', 'warning'])
+            ->orderBy('created_at', 'asc');
+        if ($fromDate && $toDate) $timelineQuery->whereBetween('created_at', [$from, $to]);
+        $attackTimeline = $timelineQuery->get();
+
+        // 6.3 BIỂU ĐỒ CHART.JS (7 Ngày)
         $chartLabels = [];
         $chartAttack = [];
         $chartAlert = [];
-
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i)->format('Y-m-d');
             $chartLabels[] = Carbon::now()->subDays($i)->format('d/m');
-            
             $chartAttack[] = SystemLog::whereDate('created_at', $date)->where('level', 'danger')->count();
             $chartAlert[] = SystemLog::whereDate('created_at', $date)->where('level', 'warning')->count();
         }
 
-        // 6. LẤY TOÀN BỘ LOGS THEO ĐIỀU KIỆN LỌC (Không phân trang)
+        // LẤY BẢNG LOGS CHÍNH
         $logs = $query->orderBy('created_at', 'desc')->get();
 
         return view('logs', compact(
             'logs', 'stats', 'topIps', 'chartLabels', 'chartAttack', 'chartAlert', 
-            'fromDate', 'toDate'
+            'fromDate', 'toDate', 'alertDetails', 'attackTimeline'
         ));
     }
 }
