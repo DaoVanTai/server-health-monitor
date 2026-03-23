@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Blacklist;
-use Carbon\Carbon; // Thêm thư viện xử lý thời gian
+use App\Models\SystemLog; // <-- Thêm thư viện Log
+use Carbon\Carbon;
 
 class FirewallController extends Controller
 {
@@ -34,14 +35,22 @@ class FirewallController extends Controller
         $ip = $request->ip_address;
         $reason = $request->reason ?? 'Manual Blocked by Admin';
 
-        // 1. Lưu vào Database
+        // 1. Lưu vào Database Blacklist
         Blacklist::create([
             'ip_address' => $ip,
             'reason' => $reason,
             'status' => 'blocked'
         ]);
 
-        // 2. Chặn thật trên hệ thống Linux (Yêu cầu sudo ufw)
+        // 2. GHI VÀO LOG HỆ THỐNG (REAL LOG)
+        SystemLog::create([
+            'level' => 'danger',
+            'source' => 'Manual Firewall',
+            'message' => "Quản trị viên đã CHẶN thủ công IP. Lý do: $reason",
+            'ip_address' => $ip,
+        ]);
+
+        // 3. Chặn thật trên hệ thống Linux (Yêu cầu sudo ufw)
         if (PHP_OS_FAMILY === 'Linux') {
             shell_exec("sudo ufw deny from $ip");
         }
@@ -53,6 +62,14 @@ class FirewallController extends Controller
     public function unblockIP($id)
     {
         $item = Blacklist::findOrFail($id);
+        
+        // GHI VÀO LOG HỆ THỐNG (REAL LOG)
+        SystemLog::create([
+            'level' => 'info',
+            'source' => 'Manual Firewall',
+            'message' => "Quản trị viên đã GỠ CHẶN an toàn cho IP này.",
+            'ip_address' => $item->ip_address,
+        ]);
         
         // Gỡ lệnh chặn trên Linux
         if (PHP_OS_FAMILY === 'Linux') {

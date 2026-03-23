@@ -189,6 +189,12 @@
             <div class="sidebar-icon-wrapper"><i class="fas fa-brain"></i></div>
             <span>Aegis Intelligence</span>
         </a>
+        <a href="{{ route('logs.index') }}" class="sidebar-item {{ Request::is('analytics/logs*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <span>Log & Analytics</span>
+        </a>
     </aside>
 
     <main class="main-content">

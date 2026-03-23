@@ -82,6 +82,12 @@
         <a href="{{ route('network.index') }}" class="sidebar-item"><div class="sidebar-icon-wrapper"><i class="fas fa-network-wired"></i></div><span>Network Center</span></a>
         <a href="{{ route('firewall.index') }}" class="sidebar-item active"><div class="sidebar-icon-wrapper"><i class="fas fa-shield-alt"></i></div><span>Security</span></a>
         <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}"><div class="sidebar-icon-wrapper"><i class="fas fa-brain"></i></div><span>AI Insight</span></a>
+        <a href="{{ route('logs.index') }}" class="sidebar-item {{ Request::is('analytics/logs*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <span>Log & Analytics</span>
+        </a>
     </aside>
 
     <main class="main-content">

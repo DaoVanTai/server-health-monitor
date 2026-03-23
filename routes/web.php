@@ -9,6 +9,10 @@ use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\FirewallController;
 use App\Http\Controllers\AegisController;
 use App\Http\Controllers\SecurityController;
+use App\Http\Controllers\SystemLogController;
+
+// Route cho Log & Analytics
+Route::get('/analytics/logs', [SystemLogController::class, 'index'])->name('logs.index');
 
 // ==========================================
 // 1. ĐIỀU HƯỚNG CỔNG CHÍNH
