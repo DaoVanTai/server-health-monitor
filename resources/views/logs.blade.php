@@ -253,10 +253,11 @@
                         fill: true,
                         tension: 0.4
                     },
+                    // ĐÃ SỬA: Thêm dataset thứ 3 cho phần System
                     {
                         label: 'Số system theo ngày',
                         data: {!! json_encode($chartSystem) !!},
-                        borderColor: '#3b82f6',
+                        borderColor: '#3b82f6', // Xanh dương
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
                         fill: true,
