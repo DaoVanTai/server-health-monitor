@@ -73,7 +73,7 @@ class FirewallController extends Controller
         
         // GHI VÀO LOG HỆ THỐNG
         SystemLog::create([
-            'level' => 'info',
+            'level' => 'warning', // ĐÃ SỬA: Đổi từ 'info' thành 'warning' để không hiển thị trong System (chỉ dành cho CPU, RAM...)
             'source' => 'Manual Firewall',
             'message' => "Quản trị viên đã GỠ CHẶN an toàn cho IP này.",
             'ip_address' => $item->ip_address,

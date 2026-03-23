@@ -71,16 +71,16 @@
     </aside>
 
     <main class="main-content">
-        <h1><span>📊 Phân Tích Sự Kiện (Analytics)</span></h1>
+        <h1><span>📊 LOG & ANALYTICS (PHÂN TÍCH NHẬT KÝ HỆ THỐNG)</span></h1>
 
         <div class="grid-2col">
             <div class="card">
-                <h3 style="margin-top:0; color:var(--text-muted);"><i class="fas fa-chart-line"></i> 6.3 Biểu Đồ Log Theo Thời Gian</h3>
+                <h3 style="margin-top:0; color:var(--text-muted);"><i class="fas fa-chart-line"></i> Biểu Đồ Log Theo Thời Gian</h3>
                 <canvas id="attackChart" height="90"></canvas>
             </div>
 
             <div class="card" style="display: flex; flex-direction: column; padding: 15px;">
-                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-stopwatch"></i> 7. Attack Timeline</h3>
+                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-stopwatch"></i> Attack Timeline</h3>
                 <div class="terminal-box custom-scrollbar" style="flex: 1;">
                     <div style="color: #6b7280; margin-bottom: 10px;">// Theo dõi sự kiện theo trình tự thời gian</div>
                     @forelse($attackTimeline as $timeline)
@@ -101,7 +101,7 @@
 
         <div class="analytics-grid">
             <div class="card" style="grid-column: span 2;">
-                <h3 style="margin-top:0; color:var(--neon-yellow);"><i class="fas fa-exclamation-triangle"></i> 6.1 Thống Kê Số Lần Cảnh Báo</h3>
+                <h3 style="margin-top:0; color:var(--neon-yellow);"><i class="fas fa-exclamation-triangle"></i> Thống Kê Số Lần Cảnh Báo</h3>
                 <div class="custom-scrollbar" style="max-height: 200px; overflow-y: auto;">
                     <table class="log-table">
                         <thead style="position: sticky; top: 0; background: var(--bg-card);">
@@ -122,7 +122,7 @@
             </div>
 
             <div class="card">
-                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-skull-crossbones"></i> 6.2 Top IP Tấn Công</h3>
+                <h3 style="margin-top:0; color:var(--neon-red);"><i class="fas fa-skull-crossbones"></i> Top IP Tấn Công</h3>
                 <div class="custom-scrollbar" style="max-height: 200px; overflow-y: auto;">
                     <table class="log-table">
                         <thead style="position: sticky; top: 0; background: var(--bg-card);">
@@ -249,6 +249,15 @@
                         data: {!! json_encode($chartAlert) !!},
                         borderColor: '#eab308',
                         backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Số system theo ngày',
+                        data: {!! json_encode($chartSystem) !!},
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4

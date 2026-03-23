@@ -54,7 +54,7 @@ class SystemLogController extends Controller
         if ($fromDate && $toDate) $topIpsQuery->whereBetween('created_at', [$from, $to]);
         $topIps = $topIpsQuery->get(); 
 
-        // 6.1 THỐNG KÊ SỐ LẦN CẢNH BÁO (Gom nhóm theo Nguồn cảnh báo)
+        // 6.1 THỐNG KÊ SỐ LẦN CẢNH BÁO
         $alertDetailsQuery = SystemLog::select('source', DB::raw('count(*) as total'))
             ->where('level', 'warning')
             ->groupBy('source')
@@ -62,28 +62,31 @@ class SystemLogController extends Controller
         if ($fromDate && $toDate) $alertDetailsQuery->whereBetween('created_at', [$from, $to]);
         $alertDetails = $alertDetailsQuery->get();
 
-        // 7. ATTACK TIMELINE (Lấy sự kiện nguy hiểm, Sắp xếp TĂNG DẦN theo thời gian)
+        // 7. ATTACK TIMELINE (ĐÃ SỬA: Sắp xếp GIẢM DẦN 'desc' để mới nhất lên đầu)
         $timelineQuery = SystemLog::whereIn('level', ['danger', 'warning'])
-            ->orderBy('created_at', 'asc');
+            ->orderBy('created_at', 'desc');
         if ($fromDate && $toDate) $timelineQuery->whereBetween('created_at', [$from, $to]);
         $attackTimeline = $timelineQuery->get();
 
-        // 6.3 BIỂU ĐỒ CHART.JS (7 Ngày)
+        // 6.3 BIỂU ĐỒ CHART.JS (7 Ngày) - ĐÃ SỬA: Thêm biến chartSystem
         $chartLabels = [];
         $chartAttack = [];
         $chartAlert = [];
+        $chartSystem = []; // Thêm mảng chứa data System
+        
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i)->format('Y-m-d');
             $chartLabels[] = Carbon::now()->subDays($i)->format('d/m');
             $chartAttack[] = SystemLog::whereDate('created_at', $date)->where('level', 'danger')->count();
             $chartAlert[] = SystemLog::whereDate('created_at', $date)->where('level', 'warning')->count();
+            $chartSystem[] = SystemLog::whereDate('created_at', $date)->where('level', 'info')->count(); // Lấy data System
         }
 
         // LẤY BẢNG LOGS CHÍNH
         $logs = $query->orderBy('created_at', 'desc')->get();
 
         return view('logs', compact(
-            'logs', 'stats', 'topIps', 'chartLabels', 'chartAttack', 'chartAlert', 
+            'logs', 'stats', 'topIps', 'chartLabels', 'chartAttack', 'chartAlert', 'chartSystem', // Đã thêm chartSystem
             'fromDate', 'toDate', 'alertDetails', 'attackTimeline'
         ));
     }
