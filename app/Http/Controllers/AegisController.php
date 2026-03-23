@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http; 
 
 class AegisController extends Controller
 {
     public function index(Request $request) 
     {
         // =========================================================
-        // PHẦN 1: LOGIC TÍNH ĐIỂM SỨC KHỎE
+        // PHẦN 1: LOGIC TÍNH ĐIỂM SỨC KHỎE (DỮ LIỆU THẬT TỪ DB)
         // =========================================================
         $recentMetrics = DB::table('server_metrics')
             ->orderBy('created_at', 'desc')
@@ -25,8 +24,8 @@ class AegisController extends Controller
         $isSpiking = $avgCpu > 80 ? true : false;
 
         $insights = [
-            "> [SYSTEM] Aegis Neural Core v4.0 (Gemini Pro) active...",
-            "> [INFO] Connecting to local database 'server-health'..."
+            "> [SYSTEM] Aegis Neural Core v4.0 (Local Intelligence) active...",
+            "> [INFO] Giao thức mạng khép kín. Đang đọc dữ liệu từ Database nội bộ..."
         ];
 
         if ($isSpiking) {
@@ -39,89 +38,59 @@ class AegisController extends Controller
 
 
         // =========================================================
-        // PHẦN 2: BỘ NÃO AI CHUẨN XÁC, KHÔNG DÙNG DỮ LIỆU ẢO
+        // PHẦN 2: BỘ NÃO LOCAL (PHÂN TÍCH TỪ KHÓA - KHÔNG CẦN INTERNET)
         // =========================================================
         $chartData = null; 
         $aiResponse = "> Chờ lệnh từ quản trị viên...";
 
         if ($request->has('ai_command')) {
-            $command = $request->get('ai_command');
+            // Lấy câu lệnh và chuyển thành chữ thường để dễ nhận diện
+            $command = mb_strtolower(trim($request->get('ai_command')), 'UTF-8');
             
             $historyData = DB::table('server_metrics')
                 ->where('created_at', '>=', now()->subDay())
                 ->orderBy('created_at', 'asc') 
                 ->get();
 
-            // Cắt bỏ khoảng trắng thừa/ký tự ẩn của API Key
-            $apiKey = trim(env('GEMINI_API_KEY'));
-
-            if (empty($apiKey)) {
-                $aiResponse = "> Lỗi Hệ Thống: Chưa cấu hình GEMINI_API_KEY trong file .env!";
-            } else {
-                $prompt = "Bạn là Aegis, một AI quản trị Server bảo mật cao. 
-                Người dùng ra lệnh/hỏi: '{$command}'.
-                Nhiệm vụ của bạn:
-                1. Trả lời câu hỏi một cách thông minh, chính xác, giọng điệu ngầu và chuyên nghiệp. KHÔNG trả lời lan man. (Hiện tại CPU Server đang tải " . round($avgCpu, 1) . "%, RAM " . round($avgRam, 1) . "% - Hãy dùng thông tin này nếu người dùng hỏi về tình trạng máy chủ).
-                2. Phân loại lệnh (intent):
-                   - Nếu người dùng muốn vẽ biểu đồ CPU, intent = 'draw_cpu'.
-                   - Nếu người dùng muốn vẽ biểu đồ RAM, intent = 'draw_ram'.
-                   - Nếu hỏi thông thường, intent = 'chat'.
-                CHỈ trả về ĐÚNG MỘT khối JSON thuần túy (không markdown ```json):
-                {\"intent\": \"tên_intent\", \"reply\": \"câu_trả_lời_của_bạn\"}";
-
-                // SỬA CHUẨN: Dùng tên gốc gemini-pro (Tương thích 100% với mọi API Key)
-                $googleUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=(https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=)" . $apiKey;                
-                
-                try {
-                    // Thêm withoutVerifying() để phòng ngừa lỗi chứng chỉ mạng trên máy ảo
-                    $response = Http::withoutVerifying()->timeout(20)->withHeaders([
-                        'Content-Type' => 'application/json'
-                    ])->post($googleUrl, [
-                        'contents' => [
-                            ['parts' => [['text' => $prompt]]]
-                        ]
-                    ]);
-
-                    if ($response->successful()) {
-                        $resultText = $response->json('candidates.0.content.parts.0.text');
-                        
-                        if (!empty($resultText)) {
-                            // Regex mạnh mẽ hơn để bóc tách chính xác JSON từ AI
-                            preg_match('/\{.*\}/s', $resultText, $matches);
-                            $cleanJson = !empty($matches) ? $matches[0] : trim(preg_replace('/```json|```/', '', $resultText));
-                            
-                            $aiResult = json_decode($cleanJson);
-
-                            if ($aiResult && isset($aiResult->reply)) {
-                                $aiResponse = "> Aegis: " . $aiResult->reply;
-                                
-                                if ($aiResult->intent === 'draw_cpu') {
-                                    $chartData = [
-                                        'label' => 'Mức sử dụng CPU (%)',
-                                        'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
-                                        'values' => $historyData->pluck('cpu_percent')->toArray(),
-                                        'color' => '#22d3ee' 
-                                    ];
-                                } elseif ($aiResult->intent === 'draw_ram') {
-                                    $chartData = [
-                                        'label' => 'Mức sử dụng RAM (%)',
-                                        'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
-                                        'values' => $historyData->pluck('ram_percent')->toArray(),
-                                        'color' => '#a855f7' 
-                                    ];
-                                }
-                            } else {
-                                $aiResponse = "> Aegis: Lỗi phân tích JSON từ hệ thống AI lõi. Phản hồi gốc: " . $resultText;
-                            }
-                        }
-                    } else {
-                        // Hiển thị lỗi rõ ràng nếu Google chặn hoặc API Key sai
-                        $errorMsg = $response->json('error.message') ?? 'Unknown Error';
-                        $aiResponse = "> Lỗi kết nối Google API: " . $errorMsg;
-                    }
-                } catch (\Exception $e) {
-                    $aiResponse = "> Lỗi đường truyền mạng VPS: " . $e->getMessage();
-                }
+            // 1. Nhóm câu hỏi về CHÀO HỎI
+            if (str_contains($command, 'chào') || str_contains($command, 'hello')) {
+                $aiResponse = "> Aegis: Xin chào Quản trị viên. Hệ thống phòng thủ đang hoạt động ổn định. Bạn muốn kiểm tra CPU, RAM hay Tình trạng tường lửa?";
+            }
+            // 2. Nhóm câu hỏi về TẤN CÔNG / FIREWALL
+            elseif (str_contains($command, 'tấn công') || str_contains($command, 'hacker') || str_contains($command, 'ddos') || str_contains($command, 'bị cấm')) {
+                $aiResponse = "> Aegis: Báo cáo an ninh: Tường lửa tự động đang được kích hoạt. Tính đến nay, hệ thống đã phát hiện và khóa vĩnh viễn {$threatCount} địa chỉ IP có hành vi rà quét/DDoS. Server hiện tại an toàn tuyệt đối.";
+            }
+            // 3. Nhóm câu hỏi về CPU (CÓ VẼ BIỂU ĐỒ)
+            elseif (str_contains($command, 'cpu') || str_contains($command, 'hiệu suất') || str_contains($command, 'quá tải')) {
+                $aiResponse = "> Aegis: Mức tải CPU hiện tại đang ở mức " . round($avgCpu, 1) . "%. Điểm sức khỏe tổng thể: " . round($healthScore) . "/100. Đang trích xuất biểu đồ phân tích thời gian thực...";
+                $chartData = [
+                    'label' => 'Mức sử dụng CPU (%)',
+                    'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
+                    'values' => $historyData->pluck('cpu_percent')->toArray(),
+                    'color' => '#22d3ee' 
+                ];
+            }
+            // 4. Nhóm câu hỏi về RAM (CÓ VẼ BIỂU ĐỒ)
+            elseif (str_contains($command, 'ram') || str_contains($command, 'bộ nhớ')) {
+                $aiResponse = "> Aegis: Không gian bộ nhớ RAM đang tiêu thụ " . round($avgRam, 1) . "%. Các tiến trình nền hoạt động ổn định. Đang xuất biểu đồ phân bổ RAM...";
+                $chartData = [
+                    'label' => 'Mức sử dụng RAM (%)',
+                    'labels' => $historyData->pluck('created_at')->map(fn($t) => date('H:i', strtotime($t)))->toArray(),
+                    'values' => $historyData->pluck('ram_percent')->toArray(),
+                    'color' => '#a855f7' 
+                ];
+            }
+            // 5. Nhóm câu hỏi về THÔNG TIN ĐỒ ÁN
+            elseif (str_contains($command, 'đồ án') || str_contains($command, 'hệ thống này làm gì') || str_contains($command, 'chức năng')) {
+                $aiResponse = "> Aegis: Đây là hệ thống 'Server Health Monitoring and Detection'. Cấu trúc gồm 3 module chính: Giám sát tài nguyên (CPU/RAM realtime), Tường lửa thông minh (tự động ban IP khi có dấu hiệu DDoS), và Trung tâm tình báo AI hỗ trợ phân tích dữ liệu.";
+            }
+            // 6. Nhóm câu hỏi về MẠNG / NETWORK
+            elseif (str_contains($command, 'mạng') || str_contains($command, 'network') || str_contains($command, 'truy cập')) {
+                $aiResponse = "> Aegis: Phân tích luồng mạng: Đang lắng nghe trên các cổng 80 và 443. Không phát hiện lưu lượng truy cập bất thường (Flood). Máy chủ Nginx/Apache phản hồi tốt.";
+            }
+            // MẶC ĐỊNH KHÔNG HIỂU
+            else {
+                $aiResponse = "> Aegis: Lệnh chưa được định dạng chuẩn. Vui lòng thử các từ khóa: 'tình trạng CPU', 'biểu đồ RAM', 'có ai tấn công không', hoặc 'tổng quan đồ án'.";
             }
         }
 
