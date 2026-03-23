@@ -4,14 +4,26 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Blacklist;
+use Carbon\Carbon; // Thêm thư viện xử lý thời gian
 
 class FirewallController extends Controller
 {
-    // Hiển thị trang Firewall
+    // Hiển thị trang Firewall (Đã nâng cấp Thống kê & Timeline)
     public function index()
     {
         $blacklists = Blacklist::orderBy('created_at', 'desc')->get();
-        return view('firewall', compact('blacklists'));
+        
+        // 1. THỐNG KÊ TẤN CÔNG (Statistics)
+        $totalAttacks = Blacklist::count();
+        $todayAttacks = Blacklist::whereDate('created_at', Carbon::today())->count();
+        $autoBanned = Blacklist::where('reason', 'like', '%Auto-ban%')
+                               ->orWhere('reason', 'like', '%Flood%')
+                               ->count();
+
+        // 2. TIMELINE TẤN CÔNG (Lấy 10 sự kiện mới nhất)
+        $timelineEvents = Blacklist::orderBy('created_at', 'desc')->take(10)->get();
+
+        return view('firewall', compact('blacklists', 'totalAttacks', 'todayAttacks', 'autoBanned', 'timelineEvents'));
     }
 
     // Xử lý chặn IP
@@ -30,7 +42,9 @@ class FirewallController extends Controller
         ]);
 
         // 2. Chặn thật trên hệ thống Linux (Yêu cầu sudo ufw)
-        shell_exec("sudo ufw deny from $ip");
+        if (PHP_OS_FAMILY === 'Linux') {
+            shell_exec("sudo ufw deny from $ip");
+        }
 
         return back()->with('success', "IP $ip đã bị đưa vào danh sách đen!");
     }
@@ -41,7 +55,9 @@ class FirewallController extends Controller
         $item = Blacklist::findOrFail($id);
         
         // Gỡ lệnh chặn trên Linux
-        shell_exec("sudo ufw delete deny from {$item->ip_address}");
+        if (PHP_OS_FAMILY === 'Linux') {
+            shell_exec("sudo ufw delete deny from {$item->ip_address}");
+        }
         
         $item->delete();
         return back()->with('success', "Đã gỡ chặn IP thành công!");

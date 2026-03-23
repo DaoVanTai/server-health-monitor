@@ -10,6 +10,7 @@
             --bg-card: #111827; 
             --neon-red: #ef4444; 
             --neon-blue: #3b82f6;
+            --neon-orange: #f59e0b;
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
             --border-color: #1f2937;
@@ -18,18 +19,9 @@
         
         /* --- SIDEBAR SYNC --- */
         .sidebar { 
-            width: 70px; 
-            background-color: #0f172a; 
-            border-right: 1px solid var(--border-color); 
-            display: flex; 
-            flex-direction: column; 
-            padding: 20px 0; 
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            overflow: hidden; 
-            white-space: nowrap; 
-            position: fixed; 
-            height: 100vh; 
-            z-index: 1000; 
+            width: 70px; background-color: #0f172a; border-right: 1px solid var(--border-color); 
+            display: flex; flex-direction: column; padding: 20px 0; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            overflow: hidden; white-space: nowrap; position: fixed; height: 100vh; z-index: 1000; 
         }
         .sidebar:hover { width: 220px; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
         .sidebar-item { width: 100%; padding: 15px 0; display: flex; align-items: center; color: var(--text-muted); text-decoration: none; transition: all 0.2s; border-left: 3px solid transparent; }
@@ -37,135 +29,181 @@
         .sidebar-item span { opacity: 0; transform: translateX(-10px); transition: all 0.3s; font-size: 14px; font-weight: 500; }
         .sidebar:hover .sidebar-item span { opacity: 1; transform: translateX(0); }
         .sidebar-item.active { color: var(--neon-red); border-left: 3px solid var(--neon-red); background: rgba(239, 68, 68, 0.05); }
-        .sidebar-item.blue-active { color: var(--neon-blue); border-left: 3px solid var(--neon-blue); }
         .sidebar-item:hover { color: var(--text-main); }
 
-        /* --- CONTENT --- */
-        .main-content { margin-left: 70px; padding: 40px; width: 100%; box-sizing: border-box; }
-        .firewall-card { background: var(--bg-card); border: 1px solid var(--neon-red); border-radius: 12px; padding: 25px; box-shadow: 0 0 20px rgba(239, 68, 68, 0.1); }
+        /* --- CONTENT & GRID --- */
+        .main-content { margin-left: 70px; padding: 40px; width: calc(100% - 70px); box-sizing: border-box; }
         h1 { color: var(--neon-red); letter-spacing: 2px; text-transform: uppercase; margin-top: 0; }
-        .ip-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        
+        /* --- THỐNG KÊ (STATS) --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .stat-icon { width: 50px; height: 50px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 20px; }
+        .bg-red { background: rgba(239, 68, 68, 0.1); color: var(--neon-red); }
+        .bg-blue { background: rgba(59, 130, 246, 0.1); color: var(--neon-blue); }
+        .bg-orange { background: rgba(245, 158, 11, 0.1); color: var(--neon-orange); }
+        .stat-info h3 { margin: 0; font-size: 24px; color: white; }
+        .stat-info p { margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- MAIN LAYOUT --- */
+        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+        @media (max-width: 1200px) { .content-grid { grid-template-columns: 1fr; } }
+        
+        .firewall-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; }
+        .card-header { border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; font-weight: bold; color: white; display: flex; justify-content: space-between; align-items: center;}
+        
+        /* --- TABLE --- */
+        .ip-table { width: 100%; border-collapse: collapse; }
         .ip-table th { text-align: left; color: #9ca3af; padding: 12px; border-bottom: 1px solid #1f2937; font-size: 13px; }
         .ip-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
         input { background: #0b1120; border: 1px solid #1f2937; color: white; padding: 10px; border-radius: 6px; flex: 1; outline: none; }
         input:focus { border-color: var(--neon-red); }
         .btn-block { background: var(--neon-red); color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-block:hover { opacity: 0.8; box-shadow: 0 0 10px var(--neon-red); }
+        .btn-block:hover { box-shadow: 0 0 15px rgba(239,68,68,0.4); }
         .btn-unblock { background: none; border: 1px solid #22c55e; color: #22c55e; padding: 5px 10px; border-radius: 4px; cursor: pointer; transition: 0.3s; }
         .btn-unblock:hover { background: rgba(34, 197, 94, 0.1); }
+
+        /* --- TIMELINE --- */
+        .timeline { margin-left: 10px; border-left: 2px solid #1f2937; padding-left: 20px; position: relative; max-height: 500px; overflow-y: auto; padding-right: 10px;}
+        .timeline::-webkit-scrollbar { width: 6px; }
+        .timeline::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        .timeline-item { margin-bottom: 25px; position: relative; }
+        .timeline-item::before { content: ''; position: absolute; left: -27px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); }
+        .timeline-time { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .timeline-content { background: rgba(239, 68, 68, 0.05); padding: 12px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .timeline-ip { font-family: monospace; color: white; font-size: 14px; margin-bottom: 4px; display: block;}
+        .timeline-reason { font-size: 13px; color: #cbd5e1; }
     </style>
 </head>
 <body>
     <aside class="sidebar">
-        <a href="{{ route('monitor') }}" class="sidebar-item">
-            <div class="sidebar-icon-wrapper">
-                <i class="fas fa-desktop"></i>
-            </div>
-            <span>Dashboard</span>
-        </a>
-        <a href="{{ route('network.index') }}" class="sidebar-item">
-            <div class="sidebar-icon-wrapper">
-                <i class="fas fa-network-wired"></i>
-            </div>
-            <span>Network Center</span>
-        </a>
-        <a href="{{ route('firewall.index') }}" class="sidebar-item active">
-            <div class="sidebar-icon-wrapper">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <span>Security</span>
-        </a>
-        <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper">
-                <i class="fas fa-brain"></i>
-            </div>
-            <span>AI Insight</span>
-        </a>
+        <a href="{{ route('monitor') }}" class="sidebar-item"><div class="sidebar-icon-wrapper"><i class="fas fa-desktop"></i></div><span>Dashboard</span></a>
+        <a href="{{ route('network.index') }}" class="sidebar-item"><div class="sidebar-icon-wrapper"><i class="fas fa-network-wired"></i></div><span>Network Center</span></a>
+        <a href="{{ route('firewall.index') }}" class="sidebar-item active"><div class="sidebar-icon-wrapper"><i class="fas fa-shield-alt"></i></div><span>Security</span></a>
+        <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}"><div class="sidebar-icon-wrapper"><i class="fas fa-brain"></i></div><span>AI Insight</span></a>
     </aside>
 
     <main class="main-content">
         <h1>🛡️ Security Firewall</h1>
-        <p style="color: #9ca3af; margin-bottom: 30px;">Quản lý quy tắc truy cập và ngăn chặn tấn công hệ thống</p>
+        <p style="color: #9ca3af; margin-bottom: 30px;">Hệ thống giám sát và phân tích hiểm họa (SIEM Module)</p>
 
-        <div class="firewall-card">
-            <form action="{{ route('firewall.block') }}" method="POST">
-                @csrf
-                <div class="input-group">
-                    <input type="text" name="ip_address" placeholder="Địa chỉ IP " required>
-                    <input type="text" name="reason" placeholder="Lý do chặn ">
-                    <button type="submit" class="btn-block">CHẶN IP NGAY</button>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon bg-blue"><i class="fas fa-shield-virus"></i></div>
+                <div class="stat-info">
+                    <h3>{{ $totalAttacks }}</h3>
+                    <p>Tổng IP bị chặn</p>
                 </div>
-            </form>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-orange"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-info">
+                    <h3>{{ $todayAttacks }}</h3>
+                    <p>Tấn công hôm nay</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-red"><i class="fas fa-robot"></i></div>
+                <div class="stat-info">
+                    <h3>{{ $autoBanned }}</h3>
+                    <p>Hệ thống tự động Ban</p>
+                </div>
+            </div>
+        </div>
 
-            <table class="ip-table">
-                <thead>
-                    <tr>
-                        <th>IP ADDRESS (Geo-Location)</th>
-                        <th>REASON</th>
-                        <th>STATUS</th>
-                        <th>ACTION</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($blacklists as $item)
-                    <tr>
-                        <td style="color: var(--neon-red); font-weight: bold;">
-                            <span class="ip-address">{{ $item->ip_address }}</span>
-                            <span class="geo-flag" style="margin-left: 10px; font-size: 13px; color: var(--text-muted); font-weight: normal;">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </span>
-                        </td>
-                        <td>{{ $item->reason }}</td>
-                        <td><span style="color: #ef4444;"><i class="fas fa-circle" style="font-size: 8px;"></i> Blocked</span></td>
-                        <td>
-                            <form action="{{ route('firewall.unblock', $item->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn gỡ chặn IP này?')">
-                                @csrf
-                                <button type="submit" class="btn-unblock">Gỡ chặn</button>
-                            </form>
-                        </td>
-                    </tr>
+        <div class="content-grid">
+            <div class="firewall-card" style="border-color: var(--neon-red);">
+                <div class="card-header">
+                    <span><i class="fas fa-list"></i> DANH SÁCH ĐEN (BLACKLIST)</span>
+                </div>
+                
+                <form action="{{ route('firewall.block') }}" method="POST">
+                    @csrf
+                    <div class="input-group">
+                        <input type="text" name="ip_address" placeholder="Nhập địa chỉ IP..." required>
+                        <input type="text" name="reason" placeholder="Lý do chặn (Tùy chọn)">
+                        <button type="submit" class="btn-block"><i class="fas fa-ban"></i> CHẶN IP</button>
+                    </div>
+                </form>
+
+                <table class="ip-table">
+                    <thead>
+                        <tr>
+                            <th>IP ADDRESS (Geo-Location)</th>
+                            <th>REASON</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($blacklists as $item)
+                        <tr>
+                            <td style="color: var(--neon-red); font-weight: bold;">
+                                <span class="ip-address">{{ $item->ip_address }}</span>
+                                <span class="geo-flag" style="margin-left: 10px; font-size: 13px; color: var(--text-muted); font-weight: normal;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </td>
+                            <td>{{ $item->reason }}</td>
+                            <td>
+                                <form action="{{ route('firewall.unblock', $item->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn gỡ chặn IP này?')">
+                                    @csrf
+                                    <button type="submit" class="btn-unblock"><i class="fas fa-unlock"></i> Gỡ</button>
+                                </form>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px;">Hệ thống an toàn. Chưa có IP nào bị chặn.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="firewall-card">
+                <div class="card-header">
+                    <span><i class="fas fa-stream"></i> TIMELINE SỰ KIỆN</span>
+                </div>
+                
+                <div class="timeline">
+                    @forelse($timelineEvents as $event)
+                        <div class="timeline-item">
+                            <div class="timeline-time">
+                                <span>{{ \Carbon\Carbon::parse($event->created_at)->diffForHumans() }}</span>
+                                <span>{{ \Carbon\Carbon::parse($event->created_at)->format('H:i') }}</span>
+                            </div>
+                            <div class="timeline-content">
+                                <span class="timeline-ip"><i class="fas fa-crosshairs"></i> {{ $event->ip_address }}</span>
+                                <span class="timeline-reason">{{ Str::limit($event->reason, 40) }}</span>
+                            </div>
+                        </div>
                     @empty
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                            Chưa có địa chỉ IP nào trong danh sách đen.
-                        </td>
-                    </tr>
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px 0;">
+                            Chưa có dữ liệu sự kiện.
+                        </div>
                     @endforelse
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
     </main>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Lấy tất cả các thẻ có class ip-address
             const ipCells = document.querySelectorAll('.ip-address');
-
             ipCells.forEach(cell => {
                 const ip = cell.innerText.trim();
-                const flagSpan = cell.nextElementSibling; // Lấy thẻ geo-flag kế bên
-
-                // Bỏ qua nếu là IP nội bộ
+                const flagSpan = cell.nextElementSibling;
                 if (ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
                     flagSpan.innerHTML = '<i class="fas fa-network-wired" style="color: var(--text-muted);"></i> <span style="color: var(--text-muted);">Localhost</span>';
                     return;
                 }
-
-                // Gọi API để lấy thông tin quốc gia
                 fetch(`https://get.geojs.io/v1/ip/geo/${ip}.json`)
                     .then(response => response.json())
                     .then(data => {
-                        // FIX LỖI Ở ĐÂY: Sửa thành country_code (có dấu gạch dưới)
                         if (data && data.country_code) {
-                            // Link lá cờ từ flagcdn
                             const flagUrl = `https://flagcdn.com/20x15/${data.country_code.toLowerCase()}.png`;
-                            
-                            // Gắn cờ và tên quốc gia
-                            flagSpan.innerHTML = `
-                                <img src="${flagUrl}" alt="${data.country}" style="vertical-align: text-bottom; border-radius: 2px; margin-right: 5px; box-shadow: 0 0 3px rgba(0,0,0,0.5);">
-                                <span style="color: #cbd5e1;">${data.country}</span>
-                            `;
+                            flagSpan.innerHTML = `<img src="${flagUrl}" alt="${data.country}" style="vertical-align: text-bottom; border-radius: 2px; margin-right: 5px;"><span style="color: #cbd5e1;">${data.country}</span>`;
                         } else {
                             flagSpan.innerHTML = '<i class="fas fa-question-circle"></i> Unknown';
                         }
