@@ -195,6 +195,9 @@
             </div>
             <span>Log & Analytics</span>
         </a>
+        <a href="{{ route('ssh.tracker') }}" class="sidebar-item">
+    <div class="sidebar-icon-wrapper"><i class="fas fa-user-secret"></i></div>
+    <span>SSH Tracker</span>
     </aside>
 
     <main class="main-content">
