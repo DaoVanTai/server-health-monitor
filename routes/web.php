@@ -91,6 +91,9 @@ Route::middleware(['auth', 'enforce_2fa', '2fa'])->group(function () {
     
     // TRANG AI ĐÃ ĐƯỢC GIỮ LẠI ĐÚNG 1 ĐƯỜNG DẪN CHUẨN
     Route::get('/ai-intelligence', [AegisController::class, 'index'])->name('ai.index');
+
+    //Máy quét nhật kí đăng nhập
+    Route::get('/security/ssh-tracker', [App\Http\Controllers\SecurityController::class, 'sshTracker'])->name('ssh.tracker');
 });
 
 // ==========================================

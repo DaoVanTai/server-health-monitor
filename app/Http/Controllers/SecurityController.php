@@ -154,4 +154,95 @@ class SecurityController extends Controller
 
         return redirect()->back()->with('success', 'Đã gỡ phong ấn IP thành công!');
     }
+
+    /* ========================================================
+       PHẦN 3: MÁY QUÉT NHẬT KÝ ĐĂNG NHẬP (SSH TRACKER)
+       ======================================================== */
+
+    public function sshTracker()
+    {
+        // 1. Đọc file log bảo mật của Linux (Chỉ lấy các dòng liên quan đến SSH)
+        // Dùng 'sudo' vì file auth.log yêu cầu quyền root. Thêm '2>/dev/null' để ẩn lỗi nếu không có file.
+        if (PHP_OS_FAMILY === 'Linux') {
+            $logContent = shell_exec('sudo cat /var/log/auth.log | grep sshd 2>/dev/null');
+        } else {
+            $logContent = null; 
+        }
+
+        // Tạo dữ liệu giả lập (Dummy Data) nếu bạn đang code trên Windows hoặc file log bị trống
+        // Để bạn vẫn xem được giao diện hoạt động như thế nào
+        if (!$logContent) {
+            $logContent = "
+Mar 25 10:01:22 server sshd[101]: Failed password for root from 103.27.238.68 port 22 ssh2
+Mar 25 10:01:25 server sshd[102]: Failed password for invalid user admin from 103.27.238.68 port 22 ssh2
+Mar 25 10:02:10 server sshd[103]: Failed password for root from 45.141.56.47 port 22 ssh2
+Mar 25 10:05:00 server sshd[104]: Accepted password for ubuntu from 192.168.1.50 port 22 ssh2
+Mar 25 10:06:12 server sshd[105]: Failed password for root from 118.70.118.224 port 22 ssh2
+Mar 25 10:10:00 server sshd[107]: Accepted publickey for root from 103.27.61.76 port 22 ssh2
+            ";
+        }
+
+        $failedAttempts = [];
+        $successfulLogins = [];
+        $targetedUsers = [];
+
+        $lines = explode("\n", trim($logContent));
+
+        foreach ($lines as $line) {
+            if (empty(trim($line))) continue;
+
+            // Bóc tách thời gian (VD: Mar 25 10:01:22)
+            preg_match('/^([a-zA-Z]{3}\s+\d+\s\d{2}:\d{2}:\d{2})/', $line, $timeMatches);
+            $time = $timeMatches[1] ?? 'Unknown Time';
+
+            // 2. Bóc tách những lần THỬ SAI (Brute-force)
+            if (preg_match('/Failed (?:password|publickey) for (?:invalid user )?([^\s]+) from ([0-9\.]+)/', $line, $matches)) {
+                $user = $matches[1];
+                $ip = $matches[2];
+
+                // Đếm theo IP tấn công
+                if (!isset($failedAttempts[$ip])) {
+                    $failedAttempts[$ip] = ['count' => 0, 'users' => []];
+                }
+                $failedAttempts[$ip]['count']++;
+                if (!in_array($user, $failedAttempts[$ip]['users'])) {
+                    $failedAttempts[$ip]['users'][] = $user;
+                }
+
+                // Đếm theo Tài khoản bị nhắm tới
+                if (!isset($targetedUsers[$user])) {
+                    $targetedUsers[$user] = 0;
+                }
+                $targetedUsers[$user]++;
+            }
+
+            // 3. Bóc tách những lần ĐĂNG NHẬP THÀNH CÔNG (Cực kỳ quan trọng)
+            if (preg_match('/Accepted (?:password|publickey) for ([^\s]+) from ([0-9\.]+)/', $line, $matches)) {
+                $user = $matches[1];
+                $ip = $matches[2];
+                
+                $successfulLogins[] = [
+                    'time' => $time,
+                    'user' => $user,
+                    'ip' => $ip,
+                ];
+            }
+        }
+
+        // Sắp xếp mảng để lấy TOP
+        arsort($targetedUsers); // Xếp tài khoản bị tấn công nhiều nhất lên đầu
+        
+        uasort($failedAttempts, function($a, $b) {
+            return $b['count'] <=> $a['count']; // Xếp IP tấn công nhiều nhất lên đầu
+        });
+
+        $topUsers = array_slice($targetedUsers, 0, 10, true);
+        $topAttackers = array_slice($failedAttempts, 0, 10, true);
+        
+        // Đảo ngược mảng để những lần đăng nhập thành công mới nhất lên đầu
+        $recentLogins = array_reverse($successfulLogins);
+        $recentLogins = array_slice($recentLogins, 0, 15); // Lấy 15 lần gần nhất
+
+        return view('ssh_tracker', compact('topUsers', 'topAttackers', 'recentLogins'));
+    }
 }
