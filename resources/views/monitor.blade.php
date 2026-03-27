@@ -109,6 +109,11 @@
                 <i class="fas fa-clipboard-list"></i>
             </div>
             <span>Log & Analytics</span>
+            <a href="{{ route('ssh.tracker') }}" class="sidebar-item {{ Request::is('security/ssh-tracker*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-user-secret"></i>
+            </div>
+            <span>SSH Tracker</span>
         </a>
     </aside>
 
