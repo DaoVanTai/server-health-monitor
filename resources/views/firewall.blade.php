@@ -77,16 +77,43 @@
     </style>
 </head>
 <body>
+
     <aside class="sidebar">
-        <a href="{{ route('monitor') }}" class="sidebar-item"><div class="sidebar-icon-wrapper"><i class="fas fa-desktop"></i></div><span>Dashboard</span></a>
-        <a href="{{ route('network.index') }}" class="sidebar-item"><div class="sidebar-icon-wrapper"><i class="fas fa-network-wired"></i></div><span>Network Center</span></a>
-        <a href="{{ route('firewall.index') }}" class="sidebar-item active"><div class="sidebar-icon-wrapper"><i class="fas fa-shield-alt"></i></div><span>Security</span></a>
-        <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}"><div class="sidebar-icon-wrapper"><i class="fas fa-brain"></i></div><span>AI Insight</span></a>
+        <a href="{{ route('monitor') }}" class="sidebar-item {{ Request::is('monitor*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 18 0M12 7v5l3 3"></path></svg>
+            </div>
+            <span>Dashboard</span>
+        </a>
+        <a href="{{ route('network.index') }}" class="sidebar-item {{ Request::is('network*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+            <span>Network Center</span>
+        </a>
+        <a href="{{ route('firewall.index') }}" class="sidebar-item {{ Request::is('firewall*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-shield-alt"></i> 
+            </div>
+            <span>Security Firewall</span>
+        </a>
+        <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-brain"></i>
+            </div>
+            <span>Aegis Intelligence</span>
+        </a>
         <a href="{{ route('logs.index') }}" class="sidebar-item {{ Request::is('analytics/logs*') ? 'active' : '' }}">
             <div class="sidebar-icon-wrapper">
                 <i class="fas fa-clipboard-list"></i>
             </div>
             <span>Log & Analytics</span>
+        </a>
+        <a href="{{ route('ssh.tracker') }}" class="sidebar-item {{ Request::is('security/ssh-tracker*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper">
+                <i class="fas fa-user-secret"></i>
+            </div>
+            <span>SSH Tracker</span>
         </a>
     </aside>
 
@@ -112,113 +139,4 @@
             <div class="stat-card">
                 <div class="stat-icon bg-red"><i class="fas fa-robot"></i></div>
                 <div class="stat-info">
-                    <h3>{{ $autoBanned }}</h3>
-                    <p>Hệ thống tự động Ban</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="content-grid">
-            <div class="firewall-card" style="border-color: var(--neon-red);">
-                <div class="card-header">
-                    <span><i class="fas fa-list"></i> DANH SÁCH ĐEN (BLACKLIST)</span>
-                </div>
-                
-                <form action="{{ route('firewall.block') }}" method="POST">
-                    @csrf
-                    <div class="input-group">
-                        <input type="text" name="ip_address" placeholder="Nhập địa chỉ IP..." required>
-                        <input type="text" name="reason" placeholder="Lý do chặn (Tùy chọn)">
-                        <button type="submit" class="btn-block"><i class="fas fa-ban"></i> CHẶN IP</button>
-                    </div>
-                </form>
-
-                <table class="ip-table">
-                    <thead>
-                        <tr>
-                            <th>IP ADDRESS (Geo-Location)</th>
-                            <th>REASON</th>
-                            <th>ACTION</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($blacklists as $item)
-                        <tr>
-                            <td style="color: var(--neon-red); font-weight: bold;">
-                                <span class="ip-address">{{ $item->ip_address }}</span>
-                                <span class="geo-flag" style="margin-left: 10px; font-size: 13px; color: var(--text-muted); font-weight: normal;">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                </span>
-                            </td>
-                            <td>{{ $item->reason }}</td>
-                            <td>
-                                <form action="{{ route('firewall.unblock', $item->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn gỡ chặn IP này?')">
-                                    @csrf
-                                    <button type="submit" class="btn-unblock"><i class="fas fa-unlock"></i> Gỡ</button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px;">Hệ thống an toàn. Chưa có IP nào bị chặn.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="firewall-card">
-                <div class="card-header">
-                    <span><i class="fas fa-stream"></i> TIMELINE SỰ KIỆN</span>
-                </div>
-                
-                <div class="timeline">
-                    @forelse($timelineEvents as $event)
-                        <div class="timeline-item">
-                            <div class="timeline-time">
-                                <span>{{ \Carbon\Carbon::parse($event->created_at)->diffForHumans() }}</span>
-                                <span>{{ \Carbon\Carbon::parse($event->created_at)->format('H:i') }}</span>
-                            </div>
-                            <div class="timeline-content">
-                                <span class="timeline-ip"><i class="fas fa-crosshairs"></i> {{ $event->ip_address }}</span>
-                                <span class="timeline-reason">{{ Str::limit($event->reason, 40) }}</span>
-                            </div>
-                        </div>
-                    @empty
-                        <div style="color: var(--text-muted); text-align: center; padding: 20px 0;">
-                            Chưa có dữ liệu sự kiện.
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const ipCells = document.querySelectorAll('.ip-address');
-            ipCells.forEach(cell => {
-                const ip = cell.innerText.trim();
-                const flagSpan = cell.nextElementSibling;
-                if (ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
-                    flagSpan.innerHTML = '<i class="fas fa-network-wired" style="color: var(--text-muted);"></i> <span style="color: var(--text-muted);">Localhost</span>';
-                    return;
-                }
-                fetch(`https://get.geojs.io/v1/ip/geo/${ip}.json`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data && data.country_code) {
-                            const flagUrl = `https://flagcdn.com/20x15/${data.country_code.toLowerCase()}.png`;
-                            flagSpan.innerHTML = `<img src="${flagUrl}" alt="${data.country}" style="vertical-align: text-bottom; border-radius: 2px; margin-right: 5px;"><span style="color: #cbd5e1;">${data.country}</span>`;
-                        } else {
-                            flagSpan.innerHTML = '<i class="fas fa-question-circle"></i> Unknown';
-                        }
-                    })
-                    .catch(error => {
-                        flagSpan.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Lỗi định vị';
-                    });
-            });
-        });
-    </script>
-</body>
-</html>
+                    <h3>{{ $
