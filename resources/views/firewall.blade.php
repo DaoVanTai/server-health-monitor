@@ -139,4 +139,113 @@
             <div class="stat-card">
                 <div class="stat-icon bg-red"><i class="fas fa-robot"></i></div>
                 <div class="stat-info">
-                    <h3>{{ $
+                    <h3>{{ $autoBanned }}</h3>
+                    <p>Hệ thống tự động Ban</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="firewall-card" style="border-color: var(--neon-red);">
+                <div class="card-header">
+                    <span><i class="fas fa-list"></i> DANH SÁCH ĐEN (BLACKLIST)</span>
+                </div>
+                
+                <form action="{{ route('firewall.block') }}" method="POST">
+                    @csrf
+                    <div class="input-group">
+                        <input type="text" name="ip_address" placeholder="Nhập địa chỉ IP..." required>
+                        <input type="text" name="reason" placeholder="Lý do chặn (Tùy chọn)">
+                        <button type="submit" class="btn-block"><i class="fas fa-ban"></i> CHẶN IP</button>
+                    </div>
+                </form>
+
+                <table class="ip-table">
+                    <thead>
+                        <tr>
+                            <th>IP ADDRESS (Geo-Location)</th>
+                            <th>REASON</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($blacklists as $item)
+                        <tr>
+                            <td style="color: var(--neon-red); font-weight: bold;">
+                                <span class="ip-address">{{ $item->ip_address }}</span>
+                                <span class="geo-flag" style="margin-left: 10px; font-size: 13px; color: var(--text-muted); font-weight: normal;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </td>
+                            <td>{{ $item->reason }}</td>
+                            <td>
+                                <form action="{{ route('firewall.unblock', $item->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn gỡ chặn IP này?')">
+                                    @csrf
+                                    <button type="submit" class="btn-unblock"><i class="fas fa-unlock"></i> Gỡ</button>
+                                </form>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px;">Hệ thống an toàn. Chưa có IP nào bị chặn.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="firewall-card">
+                <div class="card-header">
+                    <span><i class="fas fa-stream"></i> TIMELINE SỰ KIỆN</span>
+                </div>
+                
+                <div class="timeline">
+                    @forelse($timelineEvents as $event)
+                        <div class="timeline-item">
+                            <div class="timeline-time">
+                                <span>{{ \Carbon\Carbon::parse($event->created_at)->diffForHumans() }}</span>
+                                <span>{{ \Carbon\Carbon::parse($event->created_at)->format('H:i') }}</span>
+                            </div>
+                            <div class="timeline-content">
+                                <span class="timeline-ip"><i class="fas fa-crosshairs"></i> {{ $event->ip_address }}</span>
+                                <span class="timeline-reason">{{ Str::limit($event->reason, 40) }}</span>
+                            </div>
+                        </div>
+                    @empty
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px 0;">
+                            Chưa có dữ liệu sự kiện.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const ipCells = document.querySelectorAll('.ip-address');
+            ipCells.forEach(cell => {
+                const ip = cell.innerText.trim();
+                const flagSpan = cell.nextElementSibling;
+                if (ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+                    flagSpan.innerHTML = '<i class="fas fa-network-wired" style="color: var(--text-muted);"></i> <span style="color: var(--text-muted);">Localhost</span>';
+                    return;
+                }
+                fetch(`https://get.geojs.io/v1/ip/geo/${ip}.json`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.country_code) {
+                            const flagUrl = `https://flagcdn.com/20x15/${data.country_code.toLowerCase()}.png`;
+                            flagSpan.innerHTML = `<img src="${flagUrl}" alt="${data.country}" style="vertical-align: text-bottom; border-radius: 2px; margin-right: 5px;"><span style="color: #cbd5e1;">${data.country}</span>`;
+                        } else {
+                            flagSpan.innerHTML = '<i class="fas fa-question-circle"></i> Unknown';
+                        }
+                    })
+                    .catch(error => {
+                        flagSpan.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Lỗi định vị';
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
