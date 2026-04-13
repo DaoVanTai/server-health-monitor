@@ -5,264 +5,409 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>Server Health Monitor - (Server Health Monitoring & Detection System)</title>
+    <title>Server Health Monitor - Security System</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-main: #0b1120;
-            --bg-card: #111827;
-            --border-color: #1f2937;
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
-            --neon-purple: #a855f7;
-            --neon-blue: #3b82f6;
-            --neon-green: #22c55e;
-            --neon-red: #ef4444;
-            --neon-orange: #f59e0b;
+            /* Vercel/Linear Deep Dark Theme Palette */
+            --bg-main: #000000;
+            --bg-card: #0a0a0a;
+            --border-color: #27272a;
+            --border-hover: #3f3f46;
+            
+            --text-main: #fafafa;
+            --text-muted: #a1a1aa;
+            
+            /* Vibrant Neon Colors */
+            --neon-purple: #c084fc;
+            --neon-blue: #38bdf8;
+            --neon-green: #34d399;
+            --neon-red: #f87171;
+            --neon-orange: #fbbf24;
+            
+            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
-        body { margin: 0; padding: 0; background-color: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', sans-serif; display: flex; min-height: 100vh; }
+        * { box-sizing: border-box; }
+
+        body { 
+            margin: 0; padding: 0; background-color: var(--bg-main); 
+            color: var(--text-main); font-family: 'Inter', -apple-system, sans-serif; 
+            display: flex; min-height: 100vh; -webkit-font-smoothing: antialiased;
+        }
         
         /* --- SIDEBAR --- */
-        .sidebar { width: 70px; background-color: #0f172a; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 20px 0; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; white-space: nowrap; position: fixed; height: 100vh; z-index: 1000; }
-        .sidebar:hover { width: 220px; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
-        .sidebar-item { width: 100%; padding: 15px 0; display: flex; align-items: center; color: var(--text-muted); text-decoration: none; transition: all 0.2s; border-left: 3px solid transparent; }
-        .sidebar-icon-wrapper { min-width: 70px; display: flex; justify-content: center; align-items: center; }
-        .sidebar-item span { opacity: 0; transform: translateX(-10px); transition: all 0.3s; font-size: 14px; font-weight: 500; }
-        .sidebar:hover .sidebar-item span { opacity: 1; transform: translateX(0); }
-        .sidebar-item.active { color: var(--neon-blue); border-left: 3px solid var(--neon-blue); background: rgba(59, 130, 246, 0.05); }
-        .sidebar-item:hover { color: var(--text-main); }
+        .sidebar { 
+            width: 72px; background-color: var(--bg-main); border-right: 1px solid var(--border-color); 
+            display: flex; flex-direction: column; padding: 24px 0; transition: width 0.2s ease; 
+            overflow: hidden; white-space: nowrap; position: fixed; height: 100vh; z-index: 1000;
+        }
+        .sidebar:hover { width: 240px; background-color: var(--bg-card); }
+        .sidebar-item { 
+            width: 100%; padding: 16px 0; display: flex; align-items: center; color: var(--text-muted); 
+            text-decoration: none; transition: all 0.2s; border-right: 2px solid transparent; 
+        }
+        .sidebar-icon-wrapper { min-width: 72px; display: flex; justify-content: center; align-items: center; font-size: 1.1rem;}
+        .sidebar-item span { opacity: 0; transition: opacity 0.2s; font-size: 14px; font-weight: 500;}
+        .sidebar:hover .sidebar-item span { opacity: 1; }
+        .sidebar-item.active { 
+            color: var(--text-main); background: rgba(255,255,255,0.03);
+        }
+        .sidebar-item:hover:not(.active) { color: var(--text-main); background: rgba(255,255,255,0.05); }
 
-        /* --- NỘI DUNG CHÍNH --- */
-        .main-content { flex: 1; margin-left: 70px; padding: 30px 40px; display: flex; flex-direction: column; gap: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .title-area h1 { font-size: 28px; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
-        .title-area p { color: var(--text-muted); margin: 5px 0 0 0; font-size: 14px; }
+        /* --- MAIN CONTENT --- */
+        .main-content { flex: 1; margin-left: 72px; padding: 40px 48px; display: flex; flex-direction: column; gap: 24px; max-width: 1600px; margin-right: auto;}
         
-        .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .metric-card { background-color: var(--bg-card); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); transition: all 0.3s ease; }
-        .metric-card:hover { transform: translateY(-5px); border-color: var(--neon-blue); }
-
-        .main-value { font-size: 32px; font-weight: bold; margin: 0; }
-        .card-purple .main-value { color: var(--neon-purple); }
-        .card-blue .main-value { color: var(--neon-blue); }
-        .card-green .main-value { color: var(--neon-green); }
-
-        .status-ok { color: var(--neon-green); filter: drop-shadow(0 0 3px var(--neon-green)); }
-        .status-warning { color: var(--neon-red); filter: drop-shadow(0 0 5px var(--neon-red)); animation: pulse-warn 1s infinite; }
-        @keyframes pulse-warn { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        .cores-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
-        .core-box { background: rgba(255,255,255,0.03); padding: 5px; border-radius: 4px; font-size: 9px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px;}
+        .title-area h1 { font-size: 24px; font-weight: 700; margin: 0; color: var(--text-main); letter-spacing: -0.5px;}
+        .title-area p { color: var(--text-muted); margin: 4px 0 0 0; font-size: 14px; font-weight: 400;}
         
-        .css-progress-track { height: 6px; background-color: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; margin: 10px 0; }
-        .css-progress-fill { height: 100%; transition: width 0.5s ease; width: 0%; }
-        
-        /* CHỈNH SỬA BOTTOM SECTION CHIA 3 CỘT */
-        .bottom-section { display: flex; gap: 20px; }
-        .chart-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.5; min-height: 350px; }
-        .processes-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.2; display: flex; flex-direction: column;}
-        .services-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; flex: 1.1; display: flex; flex-direction: column;}
-        
-        .process-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
-        .process-table th { text-align: left; color: var(--text-muted); padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
-        .process-table td { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .btn-logout {
+            background: transparent; border: 1px solid var(--border-color); color: var(--text-main); 
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-logout:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.05); }
 
-        .dashboard-footer { text-align: right; font-size: 11px; color: var(--text-muted); }
+        #system-status-bar { 
+            display: inline-flex; gap: 8px; align-items: center; 
+            background-color: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); 
+            color: var(--neon-green); padding: 6px 12px; border-radius: 9999px; font-weight: 500; font-size: 12px; 
+        }
+        .status-pulse { width: 8px; height: 8px; background: currentColor; border-radius: 50%; box-shadow: 0 0 8px currentColor; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        .badge-live { background: rgba(245, 158, 11, 0.1); color: var(--neon-orange); padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid var(--neon-orange); }
-        .historical-section { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin: 10px 0; display: flex; gap: 20px; transition: all 0.3s ease; }
-        .historical-section:hover { border-color: var(--neon-orange); box-shadow: 0 0 15px rgba(245, 158, 11, 0.1); }
+        #attack-warning-banner {
+            background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.2); 
+            color: var(--neon-red); padding: 12px 16px; border-radius: 8px; 
+            font-weight: 500; font-size: 13px; display: flex; align-items: center; gap: 10px;
+        }
+
+        /* --- METRIC CARDS LÀM LẠI CHO ĐẸP --- */
+        .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .metric-card { 
+            background: var(--bg-card); 
+            border-radius: 12px; 
+            padding: 24px; 
+            display: flex; 
+            flex-direction: column; 
+            border: 1px solid var(--border-color); 
+            transition: border-color 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; }
+        .metric-card:hover { border-color: var(--border-hover); }
+        
+        .card-purple::before { background: var(--neon-purple); }
+        .card-blue::before { background: var(--neon-blue); }
+        .card-green::before { background: var(--neon-green); }
+
+        .card-header { font-weight: 600; font-size: 14px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;}
+        
+        /* GAUGE STYLES */
+        .gauge-container { position: relative; height: 130px; display: flex; justify-content: center; align-items: flex-end; margin-top: 15px;}
+        .gauge-value { 
+            position: absolute; bottom: 5px; text-align: center; width: 100%;
+            font-size: 36px; font-weight: 800; color: var(--text-main); line-height: 1; letter-spacing: -1px;
+        }
+        .gauge-unit { font-size: 16px; color: var(--text-muted); font-weight: 500; margin-left: 4px;}
+
+        .card-footer { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); font-weight: 400; padding-top: 15px; margin-top: 10px; border-top: 1px solid #18181b;}
+
+        .cores-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+        .core-box { background: #18181b; padding: 4px; border-radius: 4px; font-size: 10px; font-weight: 600; text-align: center; color: var(--text-muted);}
+
+        /* --- MIDDLE & BOTTOM LAYOUT --- */
+        .middle-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; display: flex; gap: 32px;}
+        .bottom-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        
+        .panel { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--text-main);}
+        
+        .badge-live { background: rgba(56, 189, 248, 0.1); color: var(--neon-blue); padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.2); }
+
+        /* TABLE */
+        .process-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; text-align: left; }
+        .process-table th { padding: 12px 8px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border-color); font-size: 12px; text-transform: uppercase;}
+        .process-table td { padding: 12px 8px; border-bottom: 1px solid #18181b; color: var(--text-main); font-weight: 400;}
+        .process-table tr:last-child td { border-bottom: none; }
+        .process-table tr:hover td { background-color: rgba(255,255,255,0.02); }
+        .proc-name { font-weight: 500; color: var(--text-main); }
+
+        .dashboard-footer { text-align: right; font-size: 12px; color: var(--text-muted); margin-top: auto;}
+
+        /* Scrollbar */
+        .scrollable-area::-webkit-scrollbar { width: 4px; }
+        .scrollable-area::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        
+        .spike-item {
+            padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center;
+        }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
         <a href="{{ route('monitor') }}" class="sidebar-item {{ Request::is('monitor*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 18 0M12 7v5l3 3"></path></svg>
-            </div>
-            <span>Dashboard</span>
+            <div class="sidebar-icon-wrapper"><i class="fas fa-layer-group"></i></div>
+            <span>Overview</span>
         </a>
         <a href="{{ route('network.index') }}" class="sidebar-item {{ Request::is('network*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            </div>
-            <span>Network Center</span>
+            <div class="sidebar-icon-wrapper"><i class="fas fa-globe"></i></div>
+            <span>Network</span>
         </a>
         <a href="{{ route('firewall.index') }}" class="sidebar-item {{ Request::is('firewall*') ? 'active' : '' }}">
-    <div class="sidebar-icon-wrapper">
-        <i class="fas fa-shield-alt"></i> </div>
-    <span>Security</span>
-</a>
-<a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
-    <div class="sidebar-icon-wrapper">
-        <i class="fas fa-brain"></i>
-    </div>
-    <span>AI Insight</span>
-</a>
-<a href="{{ route('logs.index') }}" class="sidebar-item {{ Request::is('analytics/logs*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper">
-                <i class="fas fa-clipboard-list"></i>
-            </div>
-            <span>Log & Analytics</span>
-            <a href="{{ route('ssh.tracker') }}" class="sidebar-item {{ Request::is('security/ssh-tracker*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper">
-                <i class="fas fa-user-secret"></i>
-            </div>
-            <span>SSH Tracker</span>
+            <div class="sidebar-icon-wrapper"><i class="fas fa-shield-alt"></i></div>
+            <span>Security</span>
+        </a>
+        <a href="{{ route('ai.index') }}" class="sidebar-item {{ Request::is('ai-intelligence*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper"><i class="fas fa-sparkles"></i></div>
+            <span>AI Insight</span>
+        </a>
+        <a href="{{ route('logs.index') }}" class="sidebar-item {{ Request::is('analytics/logs*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper"><i class="fas fa-list-ul"></i></div>
+            <span>Logs</span>
         </a>
     </aside>
 
     <main class="main-content">
         <header class="header">
             <div class="title-area">
-                <h1>SYSTEM DASHBOARD</h1>
-                <p>Real-time Core Resource Monitoring</p>
+                <h1>Infrastructure Overview</h1>
+                <p>Real-time system health and resource monitoring</p>
             </div>
             
-            <div style="display: flex; gap: 15px; align-items: center;">
+            <div style="display: flex; gap: 16px; align-items: center;">
+                <div id="system-status-bar">
+                    <div class="status-pulse"></div>
+                    <span id="status-text">All systems normal</span>
+                </div>
                 <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
                     @csrf
-                    <button type="submit" style="background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Log Out</button>
+                    <button type="submit" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Sign out
+                    </button>
                 </form>
-                
             </div>
         </header>
 
-        <div id="attack-warning-banner" style="display:none; background-color:rgba(239,68,68,0.1); border:1px solid var(--neon-red); color:var(--neon-red); padding:15px; border-radius:6px; margin-bottom:10px; text-align:center; font-weight:bold;">[!] ALERT: SYSTEM OVERLOAD DETECTED [!]</div>
+        <div id="attack-warning-banner" style="display:none;">
+            <i class="fas fa-exclamation-circle" style="font-size: 18px;"></i> <span>CRITICAL ALERT: System overload or anomaly detected!</span>
+        </div>
 
         <div class="cards-grid">
             <div class="metric-card card-purple">
-                <div style="display:flex; justify-content: space-between; align-items:center">
-                    <span style="font-weight:bold; font-size:12px; color:var(--text-muted)">CPU LOAD</span>
-                    <div id="cpu-status-icon"></div> 
+                <div class="card-header">
+                    <span><i class="fas fa-microchip" style="margin-right: 6px; color: var(--neon-purple);"></i> CPU Utilization</span>
+                    <div id="cpu-status-icon"><i class="fas fa-check-circle" style="color: var(--neon-green)"></i></div> 
                 </div>
-                <div class="main-value"><span id="cpu-main">0</span>%</div>
-                <div class="css-progress-track"><div id="cpu-bar" class="css-progress-fill" style="background: var(--neon-purple)"></div></div>
-                <div id="cores-list" class="cores-container"></div>
+                <div class="gauge-container">
+                    <canvas id="cpuGauge"></canvas>
+                    <div class="gauge-value"><span id="cpu-val">0</span><span class="gauge-unit">%</span></div>
+                </div>
+                <div class="card-footer">
+                    <div id="cores-list" class="cores-container"></div>
+                </div>
             </div>
 
             <div class="metric-card card-blue">
-                <div style="display:flex; justify-content: space-between; align-items:center">
-                    <span style="font-weight:bold; font-size:12px; color:var(--text-muted)">RAM USAGE</span>
-                    <div id="ram-status-icon"></div>
+                <div class="card-header">
+                    <span><i class="fas fa-memory" style="margin-right: 6px; color: var(--neon-blue);"></i> Memory Usage</span>
+                    <div id="ram-status-icon"><i class="fas fa-check-circle" style="color: var(--neon-green)"></i></div>
                 </div>
-                <div class="main-value"><span id="ram-main">0</span>%</div>
-                <div class="css-progress-track"><div id="ram-bar" class="css-progress-fill" style="background: var(--neon-blue)"></div></div>
-                <div style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between;">
-                    <span>Total: <span id="ram-total">0</span>GB</span>
-                    <span>Used: <span id="ram-used">0</span>GB</span>
+                <div class="gauge-container">
+                    <canvas id="ramGauge"></canvas>
+                    <div class="gauge-value"><span id="ram-val">0</span><span class="gauge-unit">%</span></div>
+                </div>
+                <div class="card-footer">
+                    <span>Used: <span id="ram-used" style="color:var(--text-main); font-weight:600;">0</span> GB</span>
+                    <span>Total: <span id="ram-total">0</span> GB</span>
                 </div>
             </div>
 
             <div class="metric-card card-green">
-                <div style="display:flex; justify-content: space-between; align-items:center">
-                    <span style="font-weight:bold; font-size:12px; color:var(--text-muted)">DISK CAPACITY</span>
-                    <div id="disk-status-icon"></div>
+                <div class="card-header">
+                    <span><i class="fas fa-hdd" style="margin-right: 6px; color: var(--neon-green);"></i> Storage (Root)</span>
+                    <div id="disk-status-icon"><i class="fas fa-check-circle" style="color: var(--neon-green)"></i></div>
                 </div>
-                <div class="main-value"><span id="disk-main">0</span>%</div>
-                <div class="css-progress-track"><div id="disk-bar" class="css-progress-fill" style="background: var(--neon-green)"></div></div>
-                <div style="font-size: 10px; color: var(--text-muted);">Free: <span id="disk-free">0</span>GB</div>
+                <div class="gauge-container">
+                    <canvas id="diskGauge"></canvas>
+                    <div class="gauge-value"><span id="disk-val">0</span><span class="gauge-unit">%</span></div>
+                </div>
+                <div class="card-footer">
+                    <span>Free Space: <span id="disk-free" style="color:var(--text-main); font-weight:600;">0</span> GB</span>
+                </div>
             </div>
         </div>
 
-        <div class="historical-section">
+        <div class="middle-section">
             <div style="flex: 2.5; display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div style="font-weight:bold; color: var(--neon-orange); font-size: 14px; letter-spacing: 1px;">
-                        <i class="fas fa-history"></i> HISTORICAL RESOURCE SPIKES (6H ANALYSIS)
-                    </div>
-                    <span class="badge-live">Last 6 Hours</span>
+                <div class="panel-header" style="margin-bottom: 12px;">
+                    <span>Performance History (6H)</span>
+                    <span class="badge-live">Live Sync</span>
                 </div>
-                <div style="flex: 1; height: 200px;">
+                <div style="flex: 1; height: 240px; width: 100%;">
                     <canvas id="historical24hChart"></canvas>
                 </div>
             </div>
 
-            <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 20px; display: flex; flex-direction: column;">
-                <div style="font-weight:bold; font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">TOP 3 CPU SPIKES</div>
-                <div id="spikes-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
-                    <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding-top: 20px;">
-                        <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
+            <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 32px; display: flex; flex-direction: column;">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <span>Top Anomalies</span>
+                </div>
+                <div id="spikes-list" class="scrollable-area" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex:1; padding-right: 8px;">
+                    <div style="font-size: 13px; color: var(--text-muted); text-align: center; padding-top: 20px;">
+                        <i class="fas fa-spinner fa-spin"></i> Fetching data...
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="bottom-section">
-            <div class="chart-section">
-                <div style="font-weight:bold; margin-bottom: 20px;">CORE TRENDS (60s)</div>
-                <div style="height: 280px;"><canvas id="historyChart"></canvas></div>
+        <div class="bottom-layout">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Real-time Metrics (60s)</span>
+                    <div style="display: flex; gap: 16px; font-size: 13px; font-weight: 600;">
+                        <span style="color:var(--text-main)"><span style="background:var(--neon-purple); display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px;"></span> CPU</span> 
+                        <span style="color:var(--text-main)"><span style="background:var(--neon-blue); display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px;"></span> RAM</span>
+                    </div>
+                </div>
+                <div style="height: 300px; width:100%;"><canvas id="historyChart"></canvas></div>
             </div>
 
-            <div class="processes-section">
-                <div style="font-weight:bold;">● LIVE PROCESS MONITOR</div>
-                <div style="overflow-y: auto; flex: 1; padding-right: 5px;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Top Processes</span>
+                </div>
+                <div class="scrollable-area" style="overflow-y: auto; flex: 1; padding-right: 8px;">
                     <table class="process-table">
                         <thead>
-                            <tr><th>PID</th><th>PROCESS</th><th>CPU</th><th>RAM</th></tr>
+                            <tr><th>PID</th><th>Command</th><th>CPU</th><th>Mem</th></tr>
                         </thead>
                         <tbody id="process-list"></tbody>
                     </table>
                 </div>
             </div>
-
-                </div>
-            </div>
         </div>
         
-        <div class="dashboard-footer">Last sync: <span id="last-update-time">--:--:--</span></div>
+        <div class="dashboard-footer">Last synced: <span id="last-update-time" style="color:var(--text-main)">--:--:--</span></div>
     </main>
 
     <script>
+        // Cấu hình mặc định cho Chart.js chuẩn Dark Theme
+        Chart.defaults.color = '#a1a1aa';
+        Chart.defaults.font.family = 'Inter';
+        Chart.defaults.plugins.tooltip.backgroundColor = '#18181b';
+        Chart.defaults.plugins.tooltip.titleColor = '#fafafa';
+        Chart.defaults.plugins.tooltip.bodyColor = '#a1a1aa';
+        Chart.defaults.plugins.tooltip.borderColor = '#27272a';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 6;
+
+        // ==========================================
+        // 0. GAUGE CHARTS (BIỂU ĐỒ BÁN NGUYỆT)
+        // ==========================================
+        function createGauge(ctxId, defaultColor) {
+            return new Chart(document.getElementById(ctxId).getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Used', 'Free'],
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: [defaultColor, '#18181b'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270,
+                        borderRadius: 4 // Bo tròn 2 đầu thanh
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '80%', // Độ mỏng của thanh
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    animation: { animateRotate: true, animateScale: false }
+                }
+            });
+        }
+
+        let cpuGauge = createGauge('cpuGauge', '#c084fc');
+        let ramGauge = createGauge('ramGauge', '#38bdf8');
+        let diskGauge = createGauge('diskGauge', '#34d399');
+
+        function updateGaugeData(chart, value, defaultColor, isAlert) {
+            let color = isAlert ? '#f87171' : defaultColor;
+            chart.data.datasets[0].data = [value, 100 - value];
+            chart.data.datasets[0].backgroundColor = [color, '#18181b'];
+            chart.update();
+        }
+
         // ==========================================
         // 1. BIỂU ĐỒ REAL-TIME 60S
         // ==========================================
         const ctx = document.getElementById('historyChart').getContext('2d');
+        
+        let gradPurple = ctx.createLinearGradient(0, 0, 0, 250);
+        gradPurple.addColorStop(0, 'rgba(192, 132, 252, 0.2)'); 
+        gradPurple.addColorStop(1, 'rgba(192, 132, 252, 0)');
+        
+        let gradBlue = ctx.createLinearGradient(0, 0, 0, 250);
+        gradBlue.addColorStop(0, 'rgba(56, 189, 248, 0.2)'); 
+        gradBlue.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
         let timeLabels = [], cpuData = [], ramData = [];
         const historyChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: timeLabels,
                 datasets: [
-                    { label: 'CPU', data: cpuData, borderColor: '#a855f7', tension: 0.4, fill: false, borderWidth: 2, pointRadius: 0 },
-                    { label: 'RAM', data: ramData, borderColor: '#3b82f6', tension: 0.4, fill: false, borderWidth: 2, pointRadius: 0 }
+                    { label: 'CPU', data: cpuData, borderColor: '#c084fc', backgroundColor: gradPurple, tension: 0.4, fill: true, pointRadius: 0, borderWidth: 2 },
+                    { label: 'RAM', data: ramData, borderColor: '#38bdf8', backgroundColor: gradBlue, tension: 0.4, fill: true, pointRadius: 0, borderWidth: 2 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: { 
-                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                    y: { beginAtZero: true, max: 100, border: {display: false}, grid: { color: '#18181b', borderDash: [5, 5] } },
                     x: { display: false }
                 },
-                plugins: { legend: { display: false } }
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+                interaction: { mode: 'nearest', axis: 'x', intersect: false }
             }
         });
 
+        // ==========================================
+        // 2. FETCH DATA TỪ API
+        // ==========================================
         function updateDashboard() {
             fetch('/api/server-status')
                 .then(res => res.json())
                 .then(data => {
-                    document.getElementById('cpu-main').innerText = data.cpu_percent;
-                    document.getElementById('cpu-bar').style.width = data.cpu_percent + '%';
-                    document.getElementById('ram-main').innerText = data.ram_percent;
-                    document.getElementById('ram-bar').style.width = data.ram_percent + '%';
+                    // Update Gauges
+                    updateGaugeData(cpuGauge, data.cpu_percent, '#c084fc', data.cpu_percent >= 90);
+                    document.getElementById('cpu-val').innerText = data.cpu_percent;
+                    
+                    updateGaugeData(ramGauge, data.ram_percent, '#38bdf8', data.ram_percent >= 90);
+                    document.getElementById('ram-val').innerText = data.ram_percent;
+                    
+                    updateGaugeData(diskGauge, data.disk_percent, '#34d399', data.disk_percent >= 90);
+                    document.getElementById('disk-val').innerText = data.disk_percent;
+                    
                     document.getElementById('ram-total').innerText = data.ram_total;
                     document.getElementById('ram-used').innerText = data.ram_used;
-                    document.getElementById('disk-main').innerText = data.disk_percent;
-                    document.getElementById('disk-bar').style.width = data.disk_percent + '%';
                     document.getElementById('disk-free').innerText = data.disk_free;
                     
                     const setStatusIcon = (id, val, limit) => {
                         const el = document.getElementById(id);
                         if (val > limit) {
-                            el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="status-warning"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"></path></svg>`;
+                            el.innerHTML = `<i class="fas fa-exclamation-circle" style="color: var(--neon-red); font-size:16px;"></i>`;
                         } else {
-                            el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="status-ok"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+                            el.innerHTML = `<i class="fas fa-check-circle" style="color: var(--neon-green); font-size:16px;"></i>`;
                         }
                     };
                     setStatusIcon('cpu-status-icon', data.cpu_percent, 80);
@@ -270,23 +415,52 @@
                     setStatusIcon('disk-status-icon', data.disk_percent, 90);
 
                     let coresHtml = '';
-                    data.cores.forEach(c => {
-                        coresHtml += `<div class="core-box">${c.name}<div class="css-progress-track" style="height:3px; margin:2px 0"><div class="css-progress-fill" style="width:${c.val}%; background:#a855f7"></div></div></div>`;
+                    data.cores.forEach((c, i) => {
+                        // Hiện tối đa 4 core cho cân đối
+                        if (i < 4) {
+                            let color = c.val > 80 ? 'var(--neon-red)' : 'var(--text-muted)';
+                            coresHtml += `<div class="core-box"><span style="color:${color}">Core ${i}</span> <span style="font-size:12px; color:var(--text-main)">${c.val}%</span></div>`;
+                        }
                     });
                     document.getElementById('cores-list').innerHTML = coresHtml;
 
-                    document.getElementById('attack-warning-banner').style.display = data.is_attacked ? 'block' : 'none';
+                    const banner = document.getElementById('attack-warning-banner');
+                    const statusBar = document.getElementById('system-status-bar');
+                    const statusText = document.getElementById('status-text');
+                    
+                    if(data.is_attacked) {
+                        banner.style.display = 'flex';
+                        statusBar.style.backgroundColor = 'rgba(248,113,113,0.1)'; 
+                        statusBar.style.borderColor = 'rgba(248,113,113,0.2)'; 
+                        statusBar.style.color = 'var(--neon-red)';
+                        statusText.innerText = 'WARNING: HIGH LOAD DETECTED';
+                    } else {
+                        banner.style.display = 'none';
+                        statusBar.style.backgroundColor = 'rgba(52,211,153,0.1)'; 
+                        statusBar.style.borderColor = 'rgba(52,211,153,0.2)'; 
+                        statusBar.style.color = 'var(--neon-green)';
+                        statusText.innerText = 'System Stable';
+                    }
 
-                    let procHtml = '';
-                    data.processes.forEach(p => {
-                        procHtml += `<tr><td>#${p.pid}</td><td style="font-weight:bold">${p.name}</td><td>${p.cpu}%</td><td>${p.ram}%</td></tr>`;
-                    });
-                    document.getElementById('process-list').innerHTML = procHtml;
+                    let tbody = document.getElementById('process-list');
+                    tbody.innerHTML = '';
+                    if(data.processes) {
+                        data.processes.forEach(proc => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td style="color: var(--text-muted)">${proc.pid}</td>
+                                    <td class="proc-name">${proc.name}</td>
+                                    <td style="color: var(--neon-purple); font-weight:500;">${proc.cpu}%</td>
+                                    <td style="color: var(--neon-blue); font-weight:500;">${proc.ram}%</td>
+                                </tr>
+                            `;
+                        });
+                    }
 
                     let now = new Date().toLocaleTimeString();
                     document.getElementById('last-update-time').innerText = now;
                     timeLabels.push(now); cpuData.push(data.cpu_percent); ramData.push(data.ram_percent);
-                    if (timeLabels.length > 15) { timeLabels.shift(); cpuData.shift(); ramData.shift(); }
+                    if (timeLabels.length > 20) { timeLabels.shift(); cpuData.shift(); ramData.shift(); }
                     historyChart.update();
                 });
         }
@@ -294,25 +468,20 @@
         updateDashboard();
 
         // ==========================================
-        // 2. BIỂU ĐỒ LỊCH SỬ LƯU TRỮ
+        // 3. BIỂU ĐỒ LỊCH SỬ LƯU TRỮ (6H)
         // ==========================================
         const ctx24h = document.getElementById('historical24hChart').getContext('2d');
         const chart24h = new Chart(ctx24h, {
-            type: 'line',
+            type: 'bar',
             data: { labels: [], datasets: [] },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    y: { max: 100, min: 0, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: {size: 10}, callback: val => val + '%' } },
-                    x: { grid: { display: false }, ticks: { color: '#9ca3af', font: {size: 10}, maxTicksLimit: 12 } }
+                    y: { max: 100, min: 0, border: {display: false}, grid: { color: '#18181b', borderDash: [5,5] }, ticks: { callback: val => val + '%' } },
+                    x: { border: {display: false}, grid: { display: false }, ticks: { maxTicksLimit: 12 } }
                 },
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: { label: context => `${context.dataset.label}: ${context.parsed.y}%` }
-                    }
-                }
+                plugins: { legend: { display: false } }
             }
         });
 
@@ -321,7 +490,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if(data.history.length === 0) {
-                        document.getElementById('spikes-list').innerHTML = '<div style="font-size: 12px; color: var(--neon-green); text-align:center;">Hệ thống ổn định. Chưa có cảnh báo.</div>';
+                        document.getElementById('spikes-list').innerHTML = '<div style="font-size: 13px; color: var(--neon-green); text-align:center; padding-top:20px;"><i class="fas fa-check-circle"></i> All clear. No spikes recorded.</div>';
                         return;
                     }
 
@@ -331,19 +500,13 @@
                     });
                     
                     const histCpu = data.history.map(item => item.cpu_percent);
-                    const histRam = data.history.map(item => item.ram_percent);
-
-                    const cpuRadii = histCpu.map(val => val > 80 ? 5 : 0);
-                    const cpuColors = histCpu.map(val => val > 80 ? '#ef4444' : '#f59e0b');
+                    // Đổi màu cột Bar chart thành đỏ nếu > 80%
+                    const bgColors = histCpu.map(val => val > 80 ? '#f87171' : '#38bdf8');
 
                     chart24h.data.labels = histLabels;
                     chart24h.data.datasets = [
                         {
-                            label: 'CPU Usage', data: histCpu, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            borderWidth: 2, tension: 0.4, fill: true, pointRadius: cpuRadii, pointBackgroundColor: cpuColors, pointBorderColor: '#fff'
-                        },
-                        {
-                            label: 'RAM Usage', data: histRam, borderColor: '#3b82f6', borderWidth: 2, tension: 0.4, pointRadius: 0
+                            label: 'CPU Usage', data: histCpu, backgroundColor: bgColors, borderRadius: 4, barThickness: 'flex'
                         }
                     ];
                     chart24h.update();
@@ -354,16 +517,19 @@
                     data.spikes.forEach(spike => {
                         let d = new Date(spike.created_at);
                         let timeStr = `${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()} - ${d.getDate()}/${d.getMonth()+1}`;
-                        let colorVar = spike.cpu_percent > 90 ? 'var(--neon-red)' : 'var(--neon-orange)';
-                        let bgVar = spike.cpu_percent > 90 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+                        let isCrit = spike.cpu_percent > 90;
+                        let colorVar = isCrit ? 'var(--neon-red)' : 'var(--neon-orange)';
 
                         spikesList.innerHTML += `
-                            <div style="background: ${bgVar}; border-left: 3px solid ${colorVar}; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            <div class="spike-item">
                                 <div>
-                                    <div style="color: var(--text-main); font-weight: bold; font-size: 13px;">${timeStr}</div>
-                                    <div style="color: ${colorVar}; font-size: 11px; margin-top: 4px;">
-                                        <i class="fas fa-fire"></i> CPU Spiked to ${spike.cpu_percent}%
+                                    <div style="color: var(--text-main); font-weight: 600; font-size: 13px;">CPU Spike</div>
+                                    <div style="color: var(--text-muted); font-size: 12px; margin-top: 4px; font-weight: 500;">
+                                        <i class="fas fa-clock" style="margin-right:4px;"></i> ${timeStr}
                                     </div>
+                                </div>
+                                <div style="color: ${colorVar}; font-weight: 700; font-size: 16px; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px;">
+                                    ${spike.cpu_percent}%
                                 </div>
                             </div>
                         `;
@@ -373,54 +539,6 @@
         updateHistoricalData();
         setInterval(updateHistoricalData, 300000); 
 
-        // ==========================================
-        // 3. ĐIỀU KHIỂN DỊCH VỤ TỪ XA (MỚI THÊM)
-        // ==========================================
-        function updateServices() {
-            fetch('/api/services/status')
-                .then(res => res.json())
-                .then(data => {
-                    ['nginx', 'mysqld'].forEach(svc => {
-                        const el = document.getElementById('status-' + svc);
-                        if (data[svc] === 'running') {
-                            el.innerHTML = '<span style="color: var(--neon-green);"><i class="fas fa-circle"></i> Running</span>';
-                        } else {
-                            el.innerHTML = '<span style="color: var(--neon-red);"><i class="fas fa-times-circle"></i> Stopped</span>';
-                        }
-                    });
-                })
-                .catch(err => console.error("Lỗi cập nhật dịch vụ: ", err));
-        }
-        // Tự động kiểm tra trạng thái mỗi 10 giây
-        setInterval(updateServices, 10000);
-        updateServices();
-
-        function sendServiceCommand(service, action) {
-            if(!confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn [${action.toUpperCase()}] dịch vụ ${service}? Hành động này sẽ tác động trực tiếp lên Server!`)) return;
-            
-            // Lấy chìa khóa bảo mật CSRF
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            
-            fetch('/api/services/control', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: JSON.stringify({ service: service, action: action })
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(data.message);
-                updateServices(); // Cập nhật lại đèn trạng thái ngay lập tức
-            })
-            .catch(err => {
-                alert("Lỗi kết nối tới hệ thống điều khiển!");
-                console.error(err);
-            });
-        }
-
-        
     </script>
 </body>
 </html>
