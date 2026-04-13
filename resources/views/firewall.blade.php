@@ -24,6 +24,7 @@
             --neon-green: #34d399;
             --neon-red: #f87171;
             --neon-orange: #fbbf24;
+            --neon-cyan: #22d3ee;
             
             --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
@@ -36,13 +37,18 @@
             display: flex; min-height: 100vh; -webkit-font-smoothing: antialiased;
         }
         
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR ĐỒNG BỘ --- */
         .sidebar { 
             width: 72px; background-color: var(--bg-main); border-right: 1px solid var(--border-color); 
-            display: flex; flex-direction: column; padding: 24px 0; transition: width 0.2s ease; 
+            display: flex; flex-direction: column; padding: 20px 0; transition: width 0.2s ease; 
             overflow: hidden; white-space: nowrap; position: fixed; height: 100vh; z-index: 1000;
         }
         .sidebar:hover { width: 240px; background-color: var(--bg-card); }
+        .sidebar-logo-container { width: 100%; display: flex; align-items: center; padding: 0 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-logo { min-width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); display: flex; justify-content: center; align-items: center; font-size: 20px; color: white; flex-shrink: 0; }
+        .sidebar-logo-text { margin-left: 12px; opacity: 0; font-weight: 800; font-size: 16px; background: linear-gradient(135deg, #fff, #a1a1aa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: opacity 0.2s;}
+        .sidebar:hover .sidebar-logo-text { opacity: 1; }
+
         .sidebar-item { 
             width: 100%; padding: 16px 0; display: flex; align-items: center; color: var(--text-muted); 
             text-decoration: none; transition: all 0.2s; border-right: 2px solid transparent; 
@@ -58,18 +64,18 @@
         /* --- MAIN CONTENT --- */
         .main-content { flex: 1; margin-left: 72px; padding: 40px 48px; display: flex; flex-direction: column; gap: 24px; max-width: 1600px; margin-right: auto;}
         
+        /* --- HEADER CHUẨN (TASK BAR) --- */
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px;}
         .title-area h1 { font-size: 24px; font-weight: 700; margin: 0; color: var(--text-main); letter-spacing: -0.5px;}
         .title-area p { color: var(--text-muted); margin: 4px 0 0 0; font-size: 14px; font-weight: 400;}
         
         .btn-logout {
             background: transparent; border: 1px solid var(--border-color); color: var(--text-main); 
-            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
-            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
         .btn-logout:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.05); }
 
-        .badge-secure { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.2); color: var(--neon-red); padding: 6px 12px; border-radius: 9999px; font-weight: 500; font-size: 12px; display: flex; align-items: center; gap: 8px;}
+        .badge-secure { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.2); color: var(--neon-red); padding: 6px 14px; border-radius: 9999px; font-weight: 500; font-size: 12px; display: flex; align-items: center; gap: 8px;}
         .status-pulse { width: 8px; height: 8px; background: currentColor; border-radius: 50%; box-shadow: 0 0 8px currentColor; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
@@ -149,6 +155,11 @@
 <body>
 
     <aside class="sidebar">
+        <div class="sidebar-logo-container">
+            <div class="sidebar-logo"><i class="fas fa-shield-virus"></i></div>
+            <div class="sidebar-logo-text">AEGIS OS</div>
+        </div>
+
         <a href="{{ route('monitor') }}" class="sidebar-item {{ Request::is('monitor*') ? 'active' : '' }}">
             <div class="sidebar-icon-wrapper"><i class="fas fa-layer-group"></i></div>
             <span>Overview</span>
@@ -169,10 +180,6 @@
             <div class="sidebar-icon-wrapper"><i class="fas fa-list-ul"></i></div>
             <span>Logs</span>
         </a>
-        <a href="{{ route('ssh.tracker') }}" class="sidebar-item {{ Request::is('security/ssh-tracker*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper"><i class="fas fa-user-secret"></i></div>
-            <span>SSH Tracker</span>
-        </a>
     </aside>
 
     <main class="main-content">
@@ -182,13 +189,42 @@
                 <p>Threat Monitoring & Access Control (SIEM)</p>
             </div>
             
-            <div style="display: flex; gap: 16px; align-items: center;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                
                 <div class="badge-secure">
-                    <div class="status-pulse"></div> Firewall Active
+                    <div class="status-pulse"></div> <span>Firewall Active</span>
                 </div>
-                <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+
+                <div style="display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 9999px; padding: 4px 4px 4px 14px; gap: 12px; margin-left: 8px;">
+                    
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: var(--text-main); letter-spacing: 0.5px;">
+                        {{ Auth::check() && Auth::user()->role ? Auth::user()->role : 'Admin' }}
+                    </div>
+
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">
+                        {{ Auth::check() ? Auth::user()->name : 'Tuan Anh' }}
+                    </div>
+
+                    @php
+                        $name = Auth::check() ? Auth::user()->name : 'Tuan Anh';
+                        $words = explode(' ', trim($name));
+                        $initials = '';
+                        if (count($words) >= 2) {
+                            $initials = strtoupper(substr($words[0], 0, 1) . substr(end($words), 0, 1));
+                        } else {
+                            $initials = strtoupper(substr($name, 0, 2));
+                        }
+                    @endphp
+                    <div style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--neon-blue); display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 12px; color: var(--neon-blue); box-shadow: 0 0 10px rgba(56, 189, 248, 0.2), inset 0 0 5px rgba(56, 189, 248, 0.1);">
+                        {{ $initials }}
+                    </div>
+                </div>
+
+                <form action="{{ route('logout') }}" method="POST" style="margin: 0; margin-left: 4px;">
                     @csrf
-                    <button type="submit" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+                    <button type="submit" class="btn-logout" title="Đăng xuất" style="padding: 8px 12px;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
                 </form>
             </div>
         </header>
@@ -234,7 +270,7 @@
 
                 <div class="scrollable-area" style="overflow-y: auto; max-height: 400px; padding-right: 5px;">
                     <table class="ip-table">
-                        <thead>
+                        <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
                             <tr>
                                 <th>IP Address</th>
                                 <th>Reason</th>
