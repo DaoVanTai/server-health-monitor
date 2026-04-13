@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
     <title>Network Center - Security System</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -29,6 +31,7 @@
             --neon-green: #34d399;
             --neon-red: #f87171;
             --neon-orange: #fbbf24;
+            --neon-cyan: #22d3ee;
             
             --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
@@ -69,12 +72,11 @@
         
         .btn-logout {
             background: transparent; border: 1px solid var(--border-color); color: var(--text-main); 
-            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
-            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+            border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
         .btn-logout:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.05); }
 
-        .badge-secure { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); color: var(--neon-green); padding: 6px 12px; border-radius: 9999px; font-weight: 500; font-size: 12px; display: flex; align-items: center; gap: 8px;}
+        .badge-secure { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); color: var(--neon-green); padding: 6px 14px; border-radius: 9999px; font-weight: 500; font-size: 12px; display: flex; align-items: center; gap: 8px;}
         
         /* --- METRIC CARDS --- */
         .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -97,7 +99,6 @@
         .panel { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; }
         .panel-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--text-main);}
         
-        .main-section { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
         .detection-section { display: grid; grid-template-columns: 1fr 1.8fr; gap: 24px; }
         
         #map { height: 100%; min-height: 350px; border-radius: 8px; z-index: 1; border: 1px solid var(--border-color); background: #000;}
@@ -134,6 +135,10 @@
 <body>
 
     <aside class="sidebar">
+        <div class="sidebar-logo-container" style="padding: 0 16px; margin-bottom: 24px;">
+            <div style="min-width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); display: flex; justify-content: center; align-items: center; font-size: 20px; color: white;"><i class="fas fa-shield-virus"></i></div>
+        </div>
+
         <a href="{{ route('monitor') }}" class="sidebar-item {{ Request::is('monitor*') ? 'active' : '' }}">
             <div class="sidebar-icon-wrapper"><i class="fas fa-layer-group"></i></div>
             <span>Overview</span>
@@ -152,25 +157,50 @@
         </a>
         <a href="{{ route('logs.index') }}" class="sidebar-item {{ Request::is('analytics/logs*') ? 'active' : '' }}">
             <div class="sidebar-icon-wrapper"><i class="fas fa-list-ul"></i></div>
-            <span>Logs</span>
-        </a>
-        <a href="{{ route('ssh.tracker') }}" class="sidebar-item {{ Request::is('security/ssh-tracker*') ? 'active' : '' }}">
-            <div class="sidebar-icon-wrapper"><i class="fas fa-user-secret"></i></div>
-            <span>SSH Tracker</span>
+            <span>Security Audit</span>
         </a>
     </aside>
 
     <main class="main-content">
         <header class="header">
             <div class="title-area">
-                <h1>Network Center</h1>
-                <p>Advanced Traffic Monitoring & Interface Analytics</p>
+                <h1><i class="fas fa-globe" style="color: var(--neon-blue);"></i> Network Center</h1>
+                <p>Advanced Traffic Monitoring & Connection Analytics</p>
             </div>
-            <div style="display: flex; gap: 16px; align-items: center;">
+            
+            <div style="display: flex; gap: 12px; align-items: center;">
                 <div class="badge-secure"><i class="fas fa-shield-check"></i> Gateway Secure</div>
-                <form action="{{ route('logout') }}" method="POST">
+
+                <div style="display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 9999px; padding: 4px 4px 4px 14px; gap: 12px; margin-left: 8px;">
+                    
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: var(--text-main); letter-spacing: 0.5px;">
+                        {{ Auth::check() && Auth::user()->role ? Auth::user()->role : 'Admin' }}
+                    </div>
+
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">
+                        {{ Auth::check() ? Auth::user()->name : 'Tuan Anh' }}
+                    </div>
+
+                    @php
+                        $name = Auth::check() ? Auth::user()->name : 'Tuan Anh';
+                        $words = explode(' ', trim($name));
+                        $initials = '';
+                        if (count($words) >= 2) {
+                            $initials = strtoupper(substr($words[0], 0, 1) . substr(end($words), 0, 1));
+                        } else {
+                            $initials = strtoupper(substr($name, 0, 2));
+                        }
+                    @endphp
+                    <div style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--neon-blue); display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 12px; color: var(--neon-blue); box-shadow: 0 0 10px rgba(56, 189, 248, 0.2), inset 0 0 5px rgba(56, 189, 248, 0.1);">
+                        {{ $initials }}
+                    </div>
+                </div>
+
+                <form action="{{ route('logout') }}" method="POST" style="margin: 0; margin-left: 4px;">
                     @csrf
-                    <button type="submit" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+                    <button type="submit" class="btn-logout" title="Đăng xuất" style="padding: 8px 12px;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
                 </form>
             </div>
         </header>
@@ -198,27 +228,15 @@
             </div>
         </div>
 
-        <div class="main-section">
-            <div class="panel" style="flex: 2; height: 400px;">
-                <div class="panel-header">
-                    <span><i class="fas fa-chart-line" style="color: var(--text-muted); margin-right: 8px;"></i> Bandwidth History (MB/s)</span>
-                    <div style="display: flex; gap: 16px; font-size: 13px; font-weight: 500;">
-                        <span style="color:var(--text-muted)"><span style="background:var(--neon-blue); display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span> Download</span> 
-                        <span style="color:var(--text-muted)"><span style="background:var(--neon-purple); display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span> Upload</span>
-                    </div>
+        <div class="panel" style="height: 400px; width: 100%;">
+            <div class="panel-header">
+                <span><i class="fas fa-chart-line" style="color: var(--text-muted); margin-right: 8px;"></i> Bandwidth History (MB/s)</span>
+                <div style="display: flex; gap: 16px; font-size: 13px; font-weight: 500;">
+                    <span style="color:var(--text-muted)"><span style="background:var(--neon-blue); display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span> Download</span> 
+                    <span style="color:var(--text-muted)"><span style="background:var(--neon-purple); display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span> Upload</span>
                 </div>
-                <div style="flex: 1;"><canvas id="bandwidthChart"></canvas></div>
             </div>
-
-            <div class="panel" style="flex: 1;">
-                <div class="panel-header">
-                    <span><i class="fas fa-ethernet" style="color: var(--text-muted); margin-right: 8px;"></i> Active Interfaces</span>
-                </div>
-                <table class="net-table">
-                    <thead><tr><th>Interface</th><th>Status</th><th>Total In</th></tr></thead>
-                    <tbody id="interface-list"></tbody>
-                </table>
-            </div>
+            <div style="flex: 1;"><canvas id="bandwidthChart"></canvas></div>
         </div>
 
         <div class="detection-section">
@@ -236,7 +254,7 @@
                 </div>
                 <div class="scrollable-area" style="overflow-y: auto; max-height: 350px; padding-right: 5px;">
                     <table class="net-table">
-                        <thead>
+                        <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
                             <tr><th>Protocol</th><th>Client IP</th><th>Port</th><th>Process</th><th>Status</th><th>Action</th></tr>
                         </thead>
                         <tbody id="connection-list">
@@ -251,7 +269,6 @@
     </main>
 
     <script>
-        // Cấu hình mặc định cho Chart.js chuẩn Dark Theme
         Chart.defaults.color = '#a1a1aa';
         Chart.defaults.font.family = 'Inter';
         Chart.defaults.plugins.tooltip.backgroundColor = '#18181b';
@@ -292,7 +309,6 @@
 
         // --- 2. KHỞI TẠO BẢN ĐỒ VÀ BỘ NHỚ ĐỆM GEO-IP ---
         const map = L.map('map').setView([20.0, 0.0], 2); 
-        // ĐÃ ĐỔI SANG MAP DARK ĐỂ KHỚP VỚI THEME ĐEN
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CartoDB'
         }).addTo(map);
@@ -310,9 +326,9 @@
                     let now = new Date().toLocaleTimeString();
                     document.getElementById('last-update').innerText = now;
                     timeLabels.push(now); inData.push(data.network.in); outData.push(data.network.out);
-                    if (timeLabels.length > 20) { timeLabels.shift(); inData.shift(); outData.shift(); }
+                    // Lưu ý: Đã tăng số lượng hiển thị lên 40 vì không gian ngang giờ đã rất rộng rãi
+                    if (timeLabels.length > 40) { timeLabels.shift(); inData.shift(); outData.shift(); }
                     bandwidthChart.update();
-                    document.getElementById('interface-list').innerHTML = `<tr><td><i class="fas fa-network-wired" style="color:var(--text-muted); margin-right:6px;"></i> eth0</td><td><span class="badge-estab">UP</span></td><td style="font-weight:500;">${data.network.in} MB</td></tr>`;
                 });
 
             fetch('/api/network/active-connections')
@@ -371,7 +387,6 @@
                             </tr>
                         `;
 
-                        // Vẽ lên bản đồ (Marker đỏ cho SSH, Xanh cho Web)
                         if (conn.location && conn.location.lat && !markers[conn.remote_ip]) {
                             const marker = L.circleMarker([conn.location.lat, conn.location.lon], {
                                 radius: 6,
