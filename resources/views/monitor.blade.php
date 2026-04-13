@@ -178,36 +178,48 @@
     <main class="main-content">
         <header class="header">
             <div class="title-area">
-                <h1><i class="fas fa-chart-area" style="color: var(--neon-blue);"></i> Audit Logs Explorer</h1>
-                <p>Advanced Search, Forensic Analytics & Historic Data</p>
+                <h1>Infrastructure Overview</h1>
+                <p>Real-time system health and resource monitoring</p>
             </div>
             
-            <div style="display: flex; gap: 16px; align-items: center;">
-                <div class="badge-secure"><i class="fas fa-database"></i> Database Synced</div>
-                
-                <div style="display: flex; align-items: center; gap: 12px; padding-left: 16px; border-left: 1px solid var(--border-color);">
-                    <div style="text-align: right;">
-                        <div style="font-size: 14px; font-weight: 600; color: var(--text-main);">
-                            {{ Auth::check() ? Auth::user()->name : 'Khách' }}
-                        </div>
-                        
-                        <div style="font-size: 11px; color: var(--neon-green); display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-                            <i class="fas fa-circle" style="font-size: 8px; animation: pulse 2s infinite;"></i> 
-                            {{ Auth::check() && Auth::user()->role ? Auth::user()->role : 'System Admin' }}
-                        </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div id="system-status-bar" style="border-radius: 9999px; padding: 6px 14px;">
+                    <div class="status-pulse"></div>
+                    <span id="status-text">All systems normal</span>
+                </div>
+
+                <div style="display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 9999px; padding: 4px 4px 4px 14px; gap: 12px; margin-left: 8px;">
+                    
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: var(--text-main); letter-spacing: 0.5px;">
+                        {{ Auth::check() && Auth::user()->role ? Auth::user()->role : 'Admin' }}
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)); display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; color: white;">
-                        @if(Auth::check() && Auth::user()->name)
-                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                        @else
-                            <i class="fas fa-user-shield"></i>
-                        @endif
+
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">
+                        {{ Auth::check() ? Auth::user()->name : 'Tuan Anh' }}
+                    </div>
+
+                    @php
+                        $name = Auth::check() ? Auth::user()->name : 'Tuan Anh';
+                        $words = explode(' ', trim($name));
+                        $initials = '';
+                        if (count($words) >= 2) {
+                            // Lấy chữ cái đầu của từ đầu tiên và từ cuối cùng (VD: Tuan Anh -> TA)
+                            $initials = strtoupper(substr($words[0], 0, 1) . substr(end($words), 0, 1));
+                        } else {
+                            // Lấy 2 chữ cái đầu nếu tên chỉ có 1 từ
+                            $initials = strtoupper(substr($name, 0, 2));
+                        }
+                    @endphp
+                    <div style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--neon-blue); display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 12px; color: var(--neon-blue); box-shadow: 0 0 10px rgba(56, 189, 248, 0.2), inset 0 0 5px rgba(56, 189, 248, 0.1);">
+                        {{ $initials }}
                     </div>
                 </div>
 
-                <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+                <form action="{{ route('logout') }}" method="POST" style="margin: 0; margin-left: 4px;">
                     @csrf
-                    <button type="submit" class="btn-logout" title="Đăng xuất"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+                    <button type="submit" class="btn-logout" title="Đăng xuất" style="padding: 8px 12px;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
                 </form>
             </div>
         </header>
