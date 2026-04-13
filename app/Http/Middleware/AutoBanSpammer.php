@@ -16,96 +16,60 @@ class AutoBanSpammer
     {
         $ip = $request->ip();
 
-        // ==========================================
-        // 0. DANH SÁCH TRẮNG TỐI THƯỢNG (WHITELIST)
-        // ==========================================
-        // Đặt ở trên cùng: Những IP này là BẤT KHẢ XÂM PHẠM, đi thẳng không cần hỏi giấy tờ.
-        $safeIps = [
-            '127.0.0.1',
-            '::1',
-            '103.27.61.76', // IP máy chủ VPS của bạn
-            
-            // 💡 MẸO CHO NHÓM BẠN:
-            // Hãy lên Google gõ "What is my IP", lấy IP Wifi nhà bạn/trường bạn dán vào đây
-            // Ví dụ: '14.232.123.45',
-        ];
+        // 1. WHITELIST (IP Tin cậy - Không bao giờ bị chặn)
+        $safeIps = ['127.0.0.1', '::1', '103.27.61.76']; 
+        if (in_array($ip, $safeIps)) return $next($request);
 
-        // Nếu là IP quen thuộc hoặc mạng LAN nội bộ -> Trải thảm đỏ mời vào luôn
-        if (in_array($ip, $safeIps) || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
-            return $next($request); 
-        }
-
-        // ==========================================
-        // 1. KIỂM TRA SỔ ĐEN (BLACKLIST)
-        // ==========================================
-        $isBlocked = DB::table('blacklists')->where('ip_address', $ip)->exists();
-        if ($isBlocked) {
-            abort(403, 'AEGIS FIREWALL: IP CỦA BẠN ĐÃ BỊ CẤM TRUY CẬP DO HÀNH VI ĐÁNG NGỜ.');
-        }
-
-        // ==========================================
-        // 2. KIM BÀI MIỄN TỬ (DÀNH CHO NGƯỜI DÙNG BÌNH THƯỜNG)
-        // ==========================================
+        // 2. KIM BÀI MIỄN TỬ (Nếu đã Đăng nhập + Qua 2FA -> Cho qua luôn)
+        // Đây là phần giúp bạn không bao giờ bị ban khi đang làm việc
         if (Auth::check()) {
             return $next($request);
         }
 
-        if ($request->is('login', 'logout', '2fa*')) {
+        // 3. MIỄN TRỪ TRANG ĐĂNG NHẬP (Để user còn có chỗ mà login)
+        if ($request->is('login', 'logout', '2fa*', 'verify-2fa*', 'css/*', 'js/*', 'images/*')) {
             return $next($request);
         }
 
-        // ĐIỂM SỬA QUAN TRỌNG: Bỏ qua các file tĩnh và các luồng API gọi ngầm của Dashboard
-        if ($request->is(
-            '*.css', '*.js', '*.png', '*.jpg', '*.jpeg', '*.svg', '*.ico', '*.woff2', '*.ttf',
-            'api/*', 'livewire/*', '_debugbar/*' // Bỏ qua dữ liệu ngầm để không đếm nhầm là DDoS
-        )) {
-            return $next($request);
+        // 4. KIỂM TRA BLACKLIST (Hiện diện trên trang Security/Firewall)
+        $isBlocked = DB::table('blacklists')->where('ip_address', $ip)->exists();
+        if ($isBlocked) {
+            abort(403, 'AEGIS SHIELD: IP của bạn đã bị phong tỏa vĩnh viễn.');
         }
 
-        // ==========================================
-        // 3. THUẬT TOÁN BẮT SPAMMER / DDoS
-        // ==========================================
-        $cacheKey = 'aegis_flood_count_' . $ip;
+        // 5. THUẬT TOÁN "5 NHÁT BAN LUÔN"
+        $cacheKey = 'flood_' . $ip;
+        $requests = Cache::get($cacheKey, 0) + 1;
+        Cache::put($cacheKey, $requests, 60); // Lưu trong 60 giây
 
-        if (!Cache::has($cacheKey)) {
-            Cache::put($cacheKey, 1, 60); 
-            $requests = 1;
-        } else {
-            $requests = Cache::increment($cacheKey);
-        }
-
-        // Nâng ngưỡng báo động lên 500 để trừ hao cho các thao tác F5 chính đáng
-        if ($requests > 500) {
+        // NGƯỠNG THIẾT LẬP: 5 LẦN
+        if ($requests > 5) {
             
+            // A. GHI VÀO BẢNG BLACKLIST (Để hiện bên trang Security/Firewall)
             DB::table('blacklists')->insertOrIgnore([
                 'ip_address' => $ip,
-                'reason' => "Auto-ban by Aegis: Phát hiện lưu lượng Flood/DDoS ($requests req/min)",
+                'reason' => "Spam Attack: $requests requests/min (Threshold: 5)",
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
 
+            // B. GHI VÀO BẢNG SYSTEM_LOGS (Để hiện bên trang Logs/Audit)
             SystemLog::create([
-                'level' => 'danger', // Chuyển thành Đỏ để lọt vào Bảng Xếp Hạng Top IP
-                'source' => 'Aegis Auto-Ban (DDoS Protection)',
-                'message' => "Phát hiện lưu lượng Ping/DDoS bất thường ($requests requests/phút). Đã tự động kích hoạt lá chắn bảo vệ.",
+                'level' => 'danger',
+                'source' => 'Aegis Auto-Shield',
+                'message' => "Phát hiện tấn công dò quét (Flood). IP $ip đã thực hiện $requests yêu cầu liên tiếp. Kích hoạt lệnh trừng phạt.",
                 'ip_address' => $ip,
             ]);
 
-            Log::warning("Aegis Firewall đã tự động BAN IP: $ip do spam $requests req/min");
-            Cache::forget($cacheKey);
-
-            // ==========================================================
-            // 4. PHONG ẤN TẬN GỐC TRÊN LINUX FIREWALL (UFW)
-            // ==========================================================
+            // C. CHẶN TẬN GỐC TRÊN OS (UFW)
             if (PHP_OS_FAMILY === 'Linux') {
-                try {
-                    shell_exec("sudo ufw deny from " . escapeshellarg($ip));
-                } catch (\Exception $e) {
-                    Log::error("Aegis OS-Ban Error: " . $e->getMessage());
-                }
+                shell_exec("sudo ufw deny from " . escapeshellarg($ip));
             }
 
-            abort(403, 'AEGIS: PHÁT HIỆN TẤN CÔNG DDoS. KẾT NỐI BỊ TỪ CHỐI NGAY LẬP TỨC!');
+            Log::alert("Hệ thống AEGIS đã BAN IP: $ip (Spam detected)");
+            Cache::forget($cacheKey);
+
+            abort(403, 'AEGIS: PHÁT HIỆN HÀNH VI SPAM. IP ĐÃ BỊ CHẶN TỨC THÌ!');
         }
 
         return $next($request);
