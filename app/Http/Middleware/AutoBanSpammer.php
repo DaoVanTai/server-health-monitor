@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\SystemLog; 
+use App\Services\TelegramService;
 
 class AutoBanSpammer
 {
@@ -45,7 +46,7 @@ class AutoBanSpammer
         // NGƯỠNG THIẾT LẬP: 5 LẦN
         if ($requests > 5) {
             
-            // A. GHI VÀO BẢNG BLACKLIST (Để hiện bên trang Security/Firewall)
+            // A. GHI VÀO BẢNG BLACKLIST
             DB::table('blacklists')->insertOrIgnore([
                 'ip_address' => $ip,
                 'reason' => "Spam Attack: $requests requests/min (Threshold: 5)",
@@ -53,7 +54,7 @@ class AutoBanSpammer
                 'updated_at' => now()
             ]);
 
-            // B. GHI VÀO BẢNG SYSTEM_LOGS (Để hiện bên trang Logs/Audit)
+            // B. GHI VÀO BẢNG SYSTEM_LOGS
             SystemLog::create([
                 'level' => 'danger',
                 'source' => 'Aegis Auto-Shield',
@@ -61,7 +62,18 @@ class AutoBanSpammer
                 'ip_address' => $ip,
             ]);
 
-            // C. CHẶN TẬN GỐC TRÊN OS (UFW)
+            // C. GỬI THÔNG BÁO TELEGRAM (Thêm đoạn này vào)
+            $telegramMsg = "🚨 <b>AEGIS AUTO-SHIELD: ĐÃ CHẶN IP!</b>\n";
+            $telegramMsg .= "----------------------------------\n";
+            $telegramMsg .= "🔴 <b>Trạng thái:</b> Đã phong tỏa vĩnh viễn\n";
+            $telegramMsg .= "🌐 <b>Địa chỉ IP:</b> <code>$ip</code>\n";
+            $telegramMsg .= "📊 <b>Tần suất:</b> $requests requests/phút\n";
+            $telegramMsg .= "🛡️ <b>Hành động:</b> Đã cập nhật UFW Deny\n";
+            $telegramMsg .= "⏰ <b>Thời gian:</b> " . now()->format('H:i:s d/m/Y');
+
+            TelegramService::sendMessage($telegramMsg);
+
+            // D. CHẶN TẬN GỐC TRÊN OS (UFW)
             if (PHP_OS_FAMILY === 'Linux') {
                 shell_exec("sudo ufw deny from " . escapeshellarg($ip));
             }
