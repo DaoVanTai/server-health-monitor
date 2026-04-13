@@ -401,7 +401,7 @@
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: { 
-                   y: { beginAtZero: true, suggestedMax: 100, border: {display: false}, grid: { color: '#18181b', borderDash: [5, 5] } }
+                   y: { beginAtZero: true, suggestedMax: 100, border: {display: false}, grid: { color: '#18181b', borderDash: [5, 5] } },
                     x: { display: false }
                 },
                 plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
