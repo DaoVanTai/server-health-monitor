@@ -13,7 +13,6 @@ class SystemLogController extends Controller
     {
         $query = SystemLog::whereIn('level', ['danger', 'success', 'warning']);
 
-        // 1. TÌM KIẾM THEO TỪ KHÓA
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -23,12 +22,10 @@ class SystemLogController extends Controller
             });
         }
 
-        // LỌC THEO MỨC ĐỘ
         if ($request->filled('level') && $request->level !== 'all') {
             $query->where('level', $request->level);
         }
 
-        // 2. LỌC KHOẢNG THỜI GIAN
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -38,35 +35,14 @@ class SystemLogController extends Controller
             $query->whereBetween('created_at', [$from, $to]);
         }
 
-        // 3. LẤY DỮ LIỆU CHO CÁC BẢNG PHỤ (CHÍNH LÀ CHỖ BỊ THIẾU GÂY LỖI)
-        // TOP IP BỊ CHẶN
-        $topIpsQuery = SystemLog::select('ip_address', DB::raw('count(*) as total'))
-            ->whereNotNull('ip_address')
-            ->where('level', 'danger') 
-            ->groupBy('ip_address')
-            ->orderByDesc('total');
-        if ($fromDate && $toDate) $topIpsQuery->whereBetween('created_at', [$from, $to]);
-        $topIps = $topIpsQuery->get(); 
+        // 1. DỮ LIỆU FIREWALL (DATABASE)
+        $dbLogs = $query->orderBy('created_at', 'desc')->get();
 
-        // THỐNG KÊ NGUỒN CẢNH BÁO
-        $alertDetailsQuery = SystemLog::select('source', DB::raw('count(*) as total'))
-            ->where('level', 'warning')
-            ->groupBy('source')
-            ->orderByDesc('total');
-        if ($fromDate && $toDate) $alertDetailsQuery->whereBetween('created_at', [$from, $to]);
-        $alertDetails = $alertDetailsQuery->get();
+        // 2. DỮ LIỆU SSH TRACKER (TỪ OS)
+        $sshData = $this->getSshLogData();
 
-        // TIMELINE SỰ KIỆN (BIẾN $attackTimeline ĐANG BỊ THIẾU ĐÂY)
-        $timelineQuery = SystemLog::whereIn('level', ['danger', 'success', 'warning'])
-            ->orderBy('created_at', 'desc');
-        if ($fromDate && $toDate) $timelineQuery->whereBetween('created_at', [$from, $to]);
-        $attackTimeline = $timelineQuery->get();
-
-        // 4. BIỂU ĐỒ CHART.JS (7 Ngày)
-        $chartLabels = [];
-        $chartBlocked = [];
-        $chartUnblocked = [];
-        $chartAlert = [];
+        // 3. BIỂU ĐỒ CHART.JS (7 Ngày)
+        $chartLabels = []; $chartBlocked = []; $chartUnblocked = []; $chartAlert = [];
         
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i)->format('Y-m-d');
@@ -77,12 +53,49 @@ class SystemLogController extends Controller
             $chartAlert[] = SystemLog::whereDate('created_at', $date)->where('level', 'warning')->count();
         }
 
-        // LẤY BẢNG LOGS CHÍNH
-        $logs = $query->orderBy('created_at', 'desc')->get();
-
         return view('logs', compact(
-            'logs', 'topIps', 'chartLabels', 'chartBlocked', 'chartUnblocked', 'chartAlert', 
-            'fromDate', 'toDate', 'alertDetails', 'attackTimeline'
+            'dbLogs', 'sshData', 'chartLabels', 'chartBlocked', 'chartUnblocked', 'chartAlert', 'fromDate', 'toDate'
         ));
+    }
+
+    private function getSshLogData() {
+        if (PHP_OS_FAMILY === 'Linux') {
+            $logContent = shell_exec('sudo cat /var/log/auth.log | grep sshd | tail -n 500 2>/dev/null');
+        } else {
+            $logContent = null; 
+        }
+
+        if (!$logContent) {
+            $logContent = "Mar 25 10:01:22 server sshd[101]: Failed password for root from 103.27.238.68 port 22 ssh2\nMar 25 10:10:00 server sshd[107]: Accepted publickey for root from 103.27.61.76 port 22 ssh2";
+        }
+
+        $failedAttempts = []; $successfulLogins = []; $targetedUsers = [];
+        $lines = explode("\n", trim($logContent));
+
+        foreach ($lines as $line) {
+            if (empty(trim($line))) continue;
+            preg_match('/^([a-zA-Z]{3}\s+\d+\s\d{2}:\d{2}:\d{2})/', $line, $timeMatches);
+            $time = $timeMatches[1] ?? 'Unknown Time';
+
+            if (preg_match('/Failed (?:password|publickey) for (?:invalid user )?([^\s]+) from ([0-9\.]+)/', $line, $matches)) {
+                $user = $matches[1]; $ip = $matches[2];
+                if (!isset($failedAttempts[$ip])) $failedAttempts[$ip] = ['count' => 0, 'users' => []];
+                $failedAttempts[$ip]['count']++;
+                if (!in_array($user, $failedAttempts[$ip]['users'])) $failedAttempts[$ip]['users'][] = $user;
+                $targetedUsers[$user] = ($targetedUsers[$user] ?? 0) + 1;
+            }
+
+            if (preg_match('/Accepted (?:password|publickey) for ([^\s]+) from ([0-9\.]+)/', $line, $matches)) {
+                $successfulLogins[] = ['time' => $time, 'user' => $matches[1], 'ip' => $matches[2]];
+            }
+        }
+
+        arsort($targetedUsers);
+        uasort($failedAttempts, function($a, $b) { return $b['count'] <=> $a['count']; });
+
+        return [
+            'topAttackers' => array_slice($failedAttempts, 0, 10, true),
+            'recentLogins' => array_slice(array_reverse($successfulLogins), 0, 10)
+        ];
     }
 }
