@@ -12,6 +12,7 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
+        \App\Http\Middleware\AutoBanSpammer::class,
         // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
@@ -19,7 +20,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        \App\Http\Middleware\AutoBanSpammer::class,
+        
     ];
 
     /**
@@ -66,5 +67,16 @@ class Kernel extends HttpKernel
         /* --- THIẾT LẬP 2FA TẠI ĐÂY --- */
         '2fa' => \PragmaRX\Google2FALaravel\Middleware::class,
         'enforce_2fa' => \App\Http\Middleware\Enforce2FASetup::class,
+    ];
+    protected $middlewarePriority = [
+        \App\Http\Middleware\AutoBanSpammer::class, // Luôn ưu tiên số 1
+        \Illuminate\Cookie\Middleware\EncryptCookies::class,
+        \Illuminate\Session\Middleware\StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \App\Http\Middleware\Authenticate::class,
+        \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        \Illuminate\Session\Middleware\AuthenticateSession::class,
+        \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        \Illuminate\Auth\Middleware\Authorize::class,
     ];
 }

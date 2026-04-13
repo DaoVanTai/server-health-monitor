@@ -43,46 +43,27 @@ class AutoBanSpammer
         $requests = Cache::get($cacheKey, 0) + 1;
         Cache::put($cacheKey, $requests, 60); // Lưu trong 60 giây
 
-        // NGƯỠNG THIẾT LẬP: 5 LẦN
         if ($requests > 5) {
-            
-            // A. GHI VÀO BẢNG BLACKLIST
-            DB::table('blacklists')->insertOrIgnore([
-                'ip_address' => $ip,
-                'reason' => "Spam Attack: $requests requests/min (Threshold: 5)",
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+    // 1. CHẶN TỨC THÌ Ở TẦNG OS (UFW) - Lệnh này phải chạy đầu tiên
+    if (PHP_OS_FAMILY === 'Linux') {
+        // Sử dụng "insert 1" để đưa luật chặn lên đầu hàng đợi của Firewall
+        shell_exec("sudo /usr/sbin/ufw insert 1 deny from " . escapeshellarg($ip));
+    }
 
-            // B. GHI VÀO BẢNG SYSTEM_LOGS
-            SystemLog::create([
-                'level' => 'danger',
-                'source' => 'Aegis Auto-Shield',
-                'message' => "Phát hiện tấn công dò quét (Flood). IP $ip đã thực hiện $requests yêu cầu liên tiếp. Kích hoạt lệnh trừng phạt.",
-                'ip_address' => $ip,
-            ]);
+    // 2. GHI VÀO DB (Blacklist & Logs) - Thực hiện sau khi đã ngắt kết nối IP đó
+    DB::table('blacklists')->insertOrIgnore([
+        'ip_address' => $ip,
+        'reason' => "Spammer: Flood Attack detected ($requests r/m)",
+        'created_at' => now(), 'updated_at' => now()
+    ]);
 
-            // C. GỬI THÔNG BÁO TELEGRAM (Thêm đoạn này vào)
-            $telegramMsg = "🚨 <b>AEGIS AUTO-SHIELD: ĐÃ CHẶN IP!</b>\n";
-            $telegramMsg .= "----------------------------------\n";
-            $telegramMsg .= "🔴 <b>Trạng thái:</b> Đã phong tỏa vĩnh viễn\n";
-            $telegramMsg .= "🌐 <b>Địa chỉ IP:</b> <code>$ip</code>\n";
-            $telegramMsg .= "📊 <b>Tần suất:</b> $requests requests/phút\n";
-            $telegramMsg .= "🛡️ <b>Hành động:</b> Đã cập nhật UFW Deny\n";
-            $telegramMsg .= "⏰ <b>Thời gian:</b> " . now()->format('H:i:s d/m/Y');
+    // 3. THÔNG BÁO TELEGRAM
+    $msg = "🚨 <b>AEGIS SHIELD: PHONG TỎA KHẨN CẤP</b>\nIP <code>$ip</code> bị chặn do tấn công Flood.";
+    TelegramService::sendMessage($msg);
 
-            TelegramService::sendMessage($telegramMsg);
-
-            // D. CHẶN TẬN GỐC TRÊN OS (UFW)
-            if (PHP_OS_FAMILY === 'Linux') {
-                shell_exec("sudo ufw deny from " . escapeshellarg($ip));
-            }
-
-            Log::alert("Hệ thống AEGIS đã BAN IP: $ip (Spam detected)");
-            Cache::forget($cacheKey);
-
-            abort(403, 'AEGIS: PHÁT HIỆN HÀNH VI SPAM. IP ĐÃ BỊ CHẶN TỨC THÌ!');
-        }
+    Cache::forget($cacheKey);
+    abort(403);
+}
 
         return $next($request);
     }
