@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unified Security Audit - Aegis OS</title>
+    <title>Audit Logs Explorer - Security Center</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -26,6 +26,7 @@
         .sidebar-logo { min-width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); display: flex; justify-content: center; align-items: center; font-size: 20px; color: white; flex-shrink: 0; }
         .sidebar-logo-text { margin-left: 12px; opacity: 0; font-weight: 800; font-size: 16px; background: linear-gradient(135deg, #fff, #a1a1aa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: opacity 0.2s;}
         .sidebar:hover .sidebar-logo-text { opacity: 1; }
+        
         .sidebar-item { width: 100%; padding: 16px 0; display: flex; align-items: center; color: var(--text-muted); text-decoration: none; transition: all 0.2s; border-right: 2px solid transparent; }
         .sidebar-icon-wrapper { min-width: 72px; display: flex; justify-content: center; align-items: center; font-size: 1.1rem;}
         .sidebar-item span { opacity: 0; transition: opacity 0.2s; font-size: 14px; font-weight: 500;}
@@ -43,7 +44,6 @@
 
         .panel { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; }
         .panel-header { display: flex; align-items: center; font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--text-main);}
-        .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         
         .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color); align-items: center; }
         .filter-input { background: #000000; border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 14px; border-radius: 6px; outline: none; font-size: 13px; color-scheme: dark; }
@@ -84,15 +84,18 @@
             <div class="sidebar-icon-wrapper"><i class="fas fa-sparkles"></i></div><span>AI Insight</span>
         </a>
         <a href="{{ route('logs.index') }}" class="sidebar-item active">
-            <div class="sidebar-icon-wrapper"><i class="fas fa-clipboard-check"></i></div><span>Security Audit</span>
+            <div class="sidebar-icon-wrapper"><i class="fas fa-list-ul"></i></div><span>Log & Analytics</span>
+        </a>
+        <a href="{{ route('ssh.tracker') }}" class="sidebar-item {{ Request::is('security/ssh-tracker*') ? 'active' : '' }}">
+            <div class="sidebar-icon-wrapper"><i class="fas fa-user-secret"></i></div><span>SSH Tracker</span>
         </a>
     </aside>
 
     <main class="main-content">
         <header class="header">
             <div class="title-area">
-                <h1><i class="fas fa-clipboard-check" style="color: var(--neon-blue);"></i> Unified Security Audit</h1>
-                <p>Hợp nhất Nhật ký Tường lửa và SSH Radar</p>
+                <h1><i class="fas fa-chart-area" style="color: var(--neon-blue);"></i> Audit Logs Explorer</h1>
+                <p>Advanced Search, Forensic Analytics & Historic Data</p>
             </div>
             <div style="display: flex; gap: 16px; align-items: center;">
                 <div class="badge-secure"><i class="fas fa-database"></i> Database Synced</div>
@@ -110,52 +113,9 @@
             <div style="height: 250px; width: 100%;"><canvas id="logChart"></canvas></div>
         </div>
 
-        <div class="grid-2col">
-            <div class="panel" style="padding: 16px 24px;">
-                <div class="panel-header" style="margin-bottom: 10px;">
-                    <span><i class="fas fa-crosshairs" style="color: var(--neon-red); margin-right: 8px;"></i> Top SSH Attackers</span>
-                </div>
-                <div class="custom-scrollbar" style="max-height: 200px; overflow-y: auto;">
-                    <table class="log-table">
-                        <tbody>
-                            @forelse($sshData['topAttackers'] as $ip => $data)
-                            <tr>
-                                <td style="color: var(--neon-red); font-family: 'Roboto Mono', monospace; font-weight: 600;">{{ $ip }}</td>
-                                <td style="text-align: right;"><span class="badge badge-warning">{{ $data['count'] }} attempts</span></td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">Không có rà quét SSH.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="panel" style="padding: 16px 24px;">
-                <div class="panel-header" style="margin-bottom: 10px;">
-                    <span><i class="fas fa-check-circle" style="color: var(--neon-green); margin-right: 8px;"></i> Recent SSH Logins</span>
-                </div>
-                <div class="custom-scrollbar" style="max-height: 200px; overflow-y: auto;">
-                    <table class="log-table">
-                        <tbody>
-                            @forelse($sshData['recentLogins'] as $login)
-                            <tr>
-                                <td style="color: var(--text-muted); font-size: 12px;">{{ $login['time'] }}</td>
-                                <td style="color: var(--text-main); font-weight: 500;">{{ $login['user'] }}</td>
-                                <td style="color: var(--neon-blue); font-family: 'Roboto Mono', monospace;">{{ $login['ip'] }}</td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Chưa có lượt đăng nhập.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
         <div class="panel">
             <div class="panel-header">
-                <span><i class="fas fa-filter" style="color: var(--text-muted); margin-right: 8px;"></i> Detailed Firewall Logs Explorer</span>
+                <span><i class="fas fa-filter" style="color: var(--text-muted); margin-right: 8px;"></i> Detailed Logs Explorer</span>
             </div>
             
             <form action="{{ route('logs.index') }}" method="GET" class="filter-bar">
@@ -187,7 +147,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($dbLogs as $log)
+                        @forelse($logs as $log)
                         <tr>
                             <td style="color: var(--text-muted); font-size: 12px; white-space: nowrap;">{{ $log->created_at->format('H:i:s d/m') }}</td>
                             <td>
