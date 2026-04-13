@@ -17,7 +17,7 @@ class AutoBanSpammer
         $ip = $request->ip();
 
         // 1. WHITELIST (IP Tin cậy - Không bao giờ bị chặn)
-        $safeIps = ['127.0.0.1', '::1', '103.27.61.76']; 
+        $safeIps = ['127.0.0.1', '::1', '103.27.61.76', '116.106.96.28']; 
         if (in_array($ip, $safeIps)) return $next($request);
 
         // 2. KIM BÀI MIỄN TỬ (Nếu đã Đăng nhập + Qua 2FA -> Cho qua luôn)
