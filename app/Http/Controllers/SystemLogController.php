@@ -29,8 +29,8 @@ class SystemLogController extends Controller
         }
 
         // 2. LỌC KHOẢNG THỜI GIAN
-        $fromDate = $request->input('from_date', Carbon::today()->subDays(6)->format('Y-m-d'));
-        $toDate = $request->input('to_date', Carbon::today()->format('Y-m-d'));
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
 
         if ($fromDate && $toDate) {
             $from = $fromDate . ' 00:00:00';
@@ -38,7 +38,31 @@ class SystemLogController extends Controller
             $query->whereBetween('created_at', [$from, $to]);
         }
 
-        // BIỂU ĐỒ CHART.JS (7 Ngày)
+        // 3. LẤY DỮ LIỆU CHO CÁC BẢNG PHỤ (CHÍNH LÀ CHỖ BỊ THIẾU GÂY LỖI)
+        // TOP IP BỊ CHẶN
+        $topIpsQuery = SystemLog::select('ip_address', DB::raw('count(*) as total'))
+            ->whereNotNull('ip_address')
+            ->where('level', 'danger') 
+            ->groupBy('ip_address')
+            ->orderByDesc('total');
+        if ($fromDate && $toDate) $topIpsQuery->whereBetween('created_at', [$from, $to]);
+        $topIps = $topIpsQuery->get(); 
+
+        // THỐNG KÊ NGUỒN CẢNH BÁO
+        $alertDetailsQuery = SystemLog::select('source', DB::raw('count(*) as total'))
+            ->where('level', 'warning')
+            ->groupBy('source')
+            ->orderByDesc('total');
+        if ($fromDate && $toDate) $alertDetailsQuery->whereBetween('created_at', [$from, $to]);
+        $alertDetails = $alertDetailsQuery->get();
+
+        // TIMELINE SỰ KIỆN (BIẾN $attackTimeline ĐANG BỊ THIẾU ĐÂY)
+        $timelineQuery = SystemLog::whereIn('level', ['danger', 'success', 'warning'])
+            ->orderBy('created_at', 'desc');
+        if ($fromDate && $toDate) $timelineQuery->whereBetween('created_at', [$from, $to]);
+        $attackTimeline = $timelineQuery->get();
+
+        // 4. BIỂU ĐỒ CHART.JS (7 Ngày)
         $chartLabels = [];
         $chartBlocked = [];
         $chartUnblocked = [];
@@ -57,8 +81,8 @@ class SystemLogController extends Controller
         $logs = $query->orderBy('created_at', 'desc')->get();
 
         return view('logs', compact(
-            'logs', 'chartLabels', 'chartBlocked', 'chartUnblocked', 'chartAlert', 
-            'fromDate', 'toDate'
+            'logs', 'topIps', 'chartLabels', 'chartBlocked', 'chartUnblocked', 'chartAlert', 
+            'fromDate', 'toDate', 'alertDetails', 'attackTimeline'
         ));
     }
 }
