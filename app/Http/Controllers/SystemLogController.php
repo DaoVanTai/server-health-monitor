@@ -26,8 +26,8 @@ class SystemLogController extends Controller
             $query->where('level', $request->level);
         }
 
-        $fromDate = $request->input('from_date');
-        $toDate = $request->input('to_date');
+        $fromDate = $request->input('from_date', Carbon::today()->subDays(6)->format('Y-m-d'));
+        $toDate = $request->input('to_date', Carbon::today()->format('Y-m-d'));
 
         if ($fromDate && $toDate) {
             $from = $fromDate . ' 00:00:00';
@@ -35,26 +35,36 @@ class SystemLogController extends Controller
             $query->whereBetween('created_at', [$from, $to]);
         }
 
-        // 1. DỮ LIỆU FIREWALL (DATABASE)
-        $dbLogs = $query->orderBy('created_at', 'desc')->get();
+        // BƠM ĐỦ CÁC BIẾN ĐỂ KHÔNG BAO GIỜ BỊ LỖI
+        $topIpsQuery = SystemLog::select('ip_address', DB::raw('count(*) as total'))->whereNotNull('ip_address')->where('level', 'danger')->groupBy('ip_address')->orderByDesc('total');
+        if ($fromDate && $toDate) $topIpsQuery->whereBetween('created_at', [$from, $to]);
+        $topIps = $topIpsQuery->get(); 
 
-        // 2. DỮ LIỆU SSH TRACKER (TỪ OS)
+        $alertDetailsQuery = SystemLog::select('source', DB::raw('count(*) as total'))->where('level', 'warning')->groupBy('source')->orderByDesc('total');
+        if ($fromDate && $toDate) $alertDetailsQuery->whereBetween('created_at', [$from, $to]);
+        $alertDetails = $alertDetailsQuery->get();
+
+        $timelineQuery = SystemLog::whereIn('level', ['danger', 'success', 'warning'])->orderBy('created_at', 'desc');
+        if ($fromDate && $toDate) $timelineQuery->whereBetween('created_at', [$from, $to]);
+        $attackTimeline = $timelineQuery->get();
+
+        $dbLogs = $query->orderBy('created_at', 'desc')->get();
+        $logs = $dbLogs;
+
         $sshData = $this->getSshLogData();
 
-        // 3. BIỂU ĐỒ CHART.JS (7 Ngày)
         $chartLabels = []; $chartBlocked = []; $chartUnblocked = []; $chartAlert = [];
-        
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i)->format('Y-m-d');
             $chartLabels[] = Carbon::now()->subDays($i)->format('d/m');
-            
             $chartBlocked[] = SystemLog::whereDate('created_at', $date)->where('level', 'danger')->count();
             $chartUnblocked[] = SystemLog::whereDate('created_at', $date)->where('level', 'success')->count();
             $chartAlert[] = SystemLog::whereDate('created_at', $date)->where('level', 'warning')->count();
         }
 
         return view('logs', compact(
-            'dbLogs', 'sshData', 'chartLabels', 'chartBlocked', 'chartUnblocked', 'chartAlert', 'fromDate', 'toDate'
+            'logs', 'dbLogs', 'sshData', 'chartLabels', 'chartBlocked', 'chartUnblocked', 'chartAlert', 
+            'fromDate', 'toDate', 'topIps', 'alertDetails', 'attackTimeline'
         ));
     }
 
