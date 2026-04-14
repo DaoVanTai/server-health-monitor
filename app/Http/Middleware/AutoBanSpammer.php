@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
+// use Illuminate\Support\Facades\Auth; // Đã bỏ vì không dùng được ở tầng Global
 use App\Models\SystemLog; 
 use App\Services\TelegramService;
 
@@ -17,53 +17,73 @@ class AutoBanSpammer
     {
         $ip = $request->ip();
 
-        // 1. WHITELIST (IP Tin cậy - Không bao giờ bị chặn)
-        $safeIps = ['127.0.0.1', '::1', '103.27.61.76', '116.106.96.28']; 
-        if (in_array($ip, $safeIps)) return $next($request);
+        // ==========================================
+        // 1. KIM BÀI MIỄN TỬ (ĐỌC TỪ CACHE)
+        // ==========================================
+        // Lấy danh sách IP Admin đã đăng nhập thành công từ Cache
+        $adminIps = Cache::get('admin_safe_ips', []);
+        
+        // Gộp với danh sách IP an toàn cố định (Localhost, Server IP...)
+        $safeIps = array_merge($adminIps, ['127.0.0.1', '::1', '103.27.61.76', '116.106.96.28']); 
 
-        // 2. KIM BÀI MIỄN TỬ (Nếu đã Đăng nhập + Qua 2FA -> Cho qua luôn)
-        // Đây là phần giúp bạn không bao giờ bị ban khi đang làm việc
-        if (Auth::check()) {
+        // Nếu IP nằm trong danh sách V.I.P -> Cho qua ngay lập tức!
+        if (in_array($ip, $safeIps)) {
             return $next($request);
         }
 
-        // 3. MIỄN TRỪ TRANG ĐĂNG NHẬP (Để user còn có chỗ mà login)
-        if ($request->is('login', 'logout', '2fa*', 'verify-2fa*', 'css/*', 'js/*', 'images/*')) {
+        // ==========================================
+        // 2. MIỄN TRỪ TRANG ĐĂNG NHẬP / TÀI NGUYÊN TĨNH
+        // ==========================================
+        // KHÔNG miễn trừ trang /login (vì hacker có thể flood trang login)
+        // Chỉ miễn trừ các file tĩnh để web không bị lỗi giao diện
+        if ($request->is('css/*', 'js/*', 'images/*', 'assets/*')) {
             return $next($request);
         }
 
-        // 4. KIỂM TRA BLACKLIST (Hiện diện trên trang Security/Firewall)
+        // ==========================================
+        // 3. KIỂM TRA BLACKLIST DB
+        // ==========================================
         $isBlocked = DB::table('blacklists')->where('ip_address', $ip)->exists();
         if ($isBlocked) {
             abort(403, 'AEGIS SHIELD: IP của bạn đã bị phong tỏa vĩnh viễn.');
         }
 
-        // 5. THUẬT TOÁN "5 NHÁT BAN LUÔN"
+        // ==========================================
+        // 4. THUẬT TOÁN "5 NHÁT BAN LUÔN" (CHỐNG FLOOD)
+        // ==========================================
         $cacheKey = 'flood_' . $ip;
         $requests = Cache::get($cacheKey, 0) + 1;
-        Cache::put($cacheKey, $requests, 60); // Lưu trong 60 giây
+        Cache::put($cacheKey, $requests, 60); // Lưu đếm nhịp trong 60 giây
 
         if ($requests > 5) {
-    // 1. CHẶN TỨC THÌ Ở TẦNG OS (UFW) - Lệnh này phải chạy đầu tiên
-    if (PHP_OS_FAMILY === 'Linux') {
-        // Sử dụng "insert 1" để đưa luật chặn lên đầu hàng đợi của Firewall
-        shell_exec("sudo /usr/sbin/ufw insert 1 deny from " . escapeshellarg($ip));
-    }
+            // A. CHẶN TỨC THÌ Ở TẦNG OS (UFW)
+            if (PHP_OS_FAMILY === 'Linux') {
+                shell_exec("sudo /usr/sbin/ufw insert 1 deny from " . escapeshellarg($ip));
+            }
 
-    // 2. GHI VÀO DB (Blacklist & Logs) - Thực hiện sau khi đã ngắt kết nối IP đó
-    DB::table('blacklists')->insertOrIgnore([
-        'ip_address' => $ip,
-        'reason' => "Spammer: Flood Attack detected ($requests r/m)",
-        'created_at' => now(), 'updated_at' => now()
-    ]);
+            // B. GHI VÀO DB (Blacklist & Logs)
+            DB::table('blacklists')->insertOrIgnore([
+                'ip_address' => $ip,
+                'reason' => "Spammer: Flood Attack detected ($requests r/m)",
+                'created_at' => now(), 'updated_at' => now()
+            ]);
+            
+            SystemLog::create([
+                'level' => 'danger',
+                'source' => 'Aegis Auto-Shield',
+                'message' => "Hệ thống tự động chặn Spammer: $ip. Tần suất: $requests req/min.",
+                'ip_address' => $ip,
+            ]);
 
-    // 3. THÔNG BÁO TELEGRAM
-    $msg = "🚨 <b>AEGIS SHIELD: PHONG TỎA KHẨN CẤP</b>\nIP <code>$ip</code> bị chặn do tấn công Flood.";
-    TelegramService::sendMessage($msg);
+            // C. THÔNG BÁO TELEGRAM
+            $msg = "🚨 <b>AEGIS SHIELD: PHONG TỎA KHẨN CẤP</b>\n";
+            $msg .= "IP <code>$ip</code> bị chặn do tấn công Flood.";
+            TelegramService::sendMessage($msg);
 
-    Cache::forget($cacheKey);
-    abort(403);
-}
+            // D. XÓA ĐẾM NHỊP VÀ CHẶN HIỂN THỊ
+            Cache::forget($cacheKey);
+            abort(403, 'AEGIS: PHÁT HIỆN HÀNH VI SPAM. IP ĐÃ BỊ CHẶN TỨC THÌ!');
+        }
 
         return $next($request);
     }
